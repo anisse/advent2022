@@ -4,13 +4,14 @@ fn main() {
     let score = compute_score(&strategy_guide);
     println!("Score: {}", score);
     //part 2
-    //let score = operation2(&strategy_guide);
-    //println!("Summary2: {}", score);
+    let score = compute_score2(&strategy_guide);
+    println!("Score 2: {}", score);
 }
 
 use std::cmp::Ordering;
 
 use crate::Play::*;
+use crate::Round::*;
 
 #[derive(PartialEq, Eq)]
 enum Play {
@@ -52,6 +53,42 @@ impl FromIterator<Play> for (Play, Play) {
         (one, two)
     }
 }
+
+enum Round {
+    Lose,
+    Draw,
+    Win,
+}
+impl From<&Play> for Round {
+    fn from(p: &Play) -> Self {
+        match p {
+            Rock => Lose,
+            Paper => Draw,
+            Scissors => Win,
+        }
+    }
+}
+impl Round {
+    fn strategy(&self, other: &Play) -> Play {
+        match self {
+            Lose => match other {
+                Rock => Scissors,
+                Paper => Rock,
+                Scissors => Paper,
+            },
+            Draw => match other {
+                Rock => Rock,
+                Paper => Paper,
+                Scissors => Scissors,
+            },
+            Win => match other {
+                Rock => Paper,
+                Paper => Scissors,
+                Scissors => Rock,
+            },
+        }
+    }
+}
 fn parse(input: &str) -> Vec<(Play, Play)> {
     input
         .lines()
@@ -87,6 +124,25 @@ fn compute_score(strategy_guide: &[(Play, Play)]) -> usize {
     score
 }
 
+fn compute_score2(strategy_guide: &[(Play, Play)]) -> usize {
+    let mut score = 0;
+    for (opponent, r) in strategy_guide.iter() {
+        let round: Round = r.into();
+        let i = round.strategy(opponent);
+        score += match i.cmp(opponent) {
+            Ordering::Less => 0,
+            Ordering::Equal => 3,
+            Ordering::Greater => 6,
+        };
+        score += match i {
+            Rock => 1,
+            Paper => 2,
+            Scissors => 3,
+        };
+    }
+    score
+}
+
 #[test]
 fn test() {
     let strategy_guide = parse(include_str!("../sample.txt"));
@@ -94,6 +150,6 @@ fn test() {
     let score = compute_score(&strategy_guide);
     assert_eq!(score, 15);
     //part 2
-    // let score = operation2(&strategy_guide);
-    // assert_eq!(score, 42);
+    let score = compute_score2(&strategy_guide);
+    assert_eq!(score, 12);
 }
