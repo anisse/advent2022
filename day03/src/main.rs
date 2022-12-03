@@ -5,7 +5,7 @@ fn main() {
     println!("Sum: {}", res);
     //part 2
     let res = prio_badges(&rucksacks);
-    println!("Summary2: {}", res);
+    println!("Badge sum: {}", res);
 }
 fn parse(input: &str) -> Vec<Vec<char>> {
     input.lines().map(|x| x.chars().collect()).collect()
@@ -42,7 +42,20 @@ fn prio_sum(rucksacks: &[Vec<char>]) -> usize {
 }
 
 fn prio_badges(rucksacks: &[Vec<char>]) -> usize {
-    0
+    rucksacks
+        .chunks(3)
+        .map(|group| {
+            let g1m = to_map(group.get(0).expect("no first group element"));
+            let g2m = to_map(group.get(1).expect("no second group element"));
+            let g3m = to_map(group.get(2).expect("no third group element"));
+            g1m.iter()
+                .zip(g2m.iter())
+                .zip(g3m.iter())
+                .enumerate()
+                .find(|(_, ((a, b), c))| **a && **b && **c)
+                .map_or(0, |(i, ((_, _), _))| i + 1)
+        })
+        .sum()
 }
 
 #[test]
