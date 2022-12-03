@@ -10,7 +10,7 @@ fn main() {
 fn parse(input: &str) -> Vec<Vec<char>> {
     input.lines().map(|x| x.chars().collect()).collect()
 }
-fn letter_to_score(c: char) -> usize {
+fn letter_to_score_index(c: char) -> usize {
     match c {
         'a'..='z' => c as usize - 'a' as usize,
         'A'..='Z' => c as usize - 'A' as usize + 26,
@@ -21,7 +21,7 @@ fn letter_to_score(c: char) -> usize {
 fn to_map(sack: &[char]) -> Vec<bool> {
     let mut map = vec![false; 26 * 2];
     for c in sack.iter() {
-        map[letter_to_score(*c)] = true;
+        map[letter_to_score_index(*c)] = true;
     }
     map
 }
