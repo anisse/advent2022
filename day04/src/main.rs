@@ -38,10 +38,10 @@ fn count_overlap(sections: &[[RangeInclusive<u32>; 2]]) -> usize {
 }
 
 fn range_overlap(range1: &RangeInclusive<u32>, range2: &RangeInclusive<u32>) -> bool {
-    (range1.start() <= range2.end() && range1.start() >= range2.start())
-        || (range1.end() <= range2.end() && range1.end() >= range2.end())
-        || (range2.start() <= range1.end() && range2.start() >= range1.start())
-        || (range2.end() <= range1.end() && range2.end() >= range1.end())
+    range1.contains(range2.start())
+        || range1.contains(range2.end())
+        || range2.contains(range1.start())
+        || range2.contains(range1.end())
 }
 
 fn count_overlap_full(sections: &[[RangeInclusive<u32>; 2]]) -> usize {
