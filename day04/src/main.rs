@@ -6,8 +6,8 @@ fn main() {
     let res = count_overlap(&sections);
     println!("Summary: {}", res);
     //part 2
-    //let res = operation2(&sections);
-    //println!("Summary2: {}", res);
+    let res = count_overlap_full(&sections);
+    println!("Summary2: {}", res);
 }
 fn parse(input: &str) -> Vec<[RangeInclusive<u32>; 2]> {
     input
@@ -37,6 +37,22 @@ fn count_overlap(sections: &[[RangeInclusive<u32>; 2]]) -> usize {
         .count()
 }
 
+fn range_overlap(range1: &RangeInclusive<u32>, range2: &RangeInclusive<u32>) -> bool {
+    for i in range1.clone() {
+        if range2.contains(&i) {
+            return true;
+        }
+    }
+    false
+}
+
+fn count_overlap_full(sections: &[[RangeInclusive<u32>; 2]]) -> usize {
+    sections
+        .iter()
+        .filter(|ranges| range_overlap(&ranges[0], &ranges[1]))
+        .count()
+}
+
 #[test]
 fn test() {
     let sections = parse(include_str!("../sample.txt"));
@@ -44,6 +60,6 @@ fn test() {
     let res = count_overlap(&sections);
     assert_eq!(res, 2);
     //part 2
-    // let res = operation2(&sections);
-    // assert_eq!(res, 42);
+    let res = count_overlap_full(&sections);
+    assert_eq!(res, 4);
 }
