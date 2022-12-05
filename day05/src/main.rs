@@ -4,8 +4,8 @@ fn main() {
     let res = movecrates(&crates, &instructions);
     println!("Summary: {}", res);
     //part 2
-    //let res = movecrates2(&(crates, instructions));
-    //println!("Summary2: {}", res);
+    let res = movecrates9001(&crates, &instructions);
+    println!("Summary 9001: {}", res);
 }
 
 #[derive(Clone, Debug)]
@@ -61,6 +61,23 @@ fn movecrates(crates: &[Vec<char>], instructions: &[Move]) -> String {
         .map(|c| *c.last().expect("no last char"))
         .collect()
 }
+fn movecrates9001(crates: &[Vec<char>], instructions: &[Move]) -> String {
+    let mut crates = crates.to_owned();
+    for m in instructions.iter() {
+        let moveblock: Vec<char> = (0..m.qty)
+            .map(|_| crates[m.src].pop().expect("nothing to pop !"))
+            .collect();
+        moveblock
+            .iter()
+            .rev()
+            .for_each(|el| crates[m.dst].push(*el));
+    }
+
+    crates
+        .iter()
+        .map(|c| *c.last().expect("no last char"))
+        .collect()
+}
 
 #[test]
 fn test() {
@@ -71,6 +88,6 @@ fn test() {
     let res = movecrates(&crates, &instructions);
     assert_eq!(res, "CMZ");
     //part 2
-    // let res = movecrates2(&(crates, instructions));
-    // assert_eq!(res, 42);
+    let res = movecrates9001(&crates, &instructions);
+    assert_eq!(res, "MCD");
 }
