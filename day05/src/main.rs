@@ -83,8 +83,6 @@ fn movecrates9001(crates: &[Vec<char>], instructions: &[Move]) -> String {
 fn test() {
     let (crates, instructions) = parse(include_str!("../sample.txt"));
     //part 1
-    dbg!(&crates);
-    dbg!(&instructions);
     let res = movecrates(&crates, &instructions);
     assert_eq!(res, "CMZ");
     //part 2
