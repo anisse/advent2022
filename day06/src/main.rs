@@ -18,20 +18,22 @@ fn parse(input: &str) -> Vec<char> {
 fn startofpacket(datastream: &[char]) -> usize {
     let mut buf = Vec::new();
     for (i, c) in datastream.iter().enumerate() {
-        if buf.len() == 4 {
-            if buf[0] != buf[1]
-                && buf[0] != buf[2]
-                && buf[0] != buf[3]
-                && buf[1] != buf[2]
-                && buf[1] != buf[3]
-                && buf[2] != buf[3]
-            {
-                return i;
+        match buf.len() {
+            4 => {
+                if buf[0] != buf[1]
+                    && buf[0] != buf[2]
+                    && buf[0] != buf[3]
+                    && buf[1] != buf[2]
+                    && buf[1] != buf[3]
+                    && buf[2] != buf[3]
+                {
+                    return i;
+                }
+                buf.remove(0);
+                buf.push(c);
             }
-            buf.remove(0);
-            buf.push(c);
-        } else if buf.len() < 4 {
-            buf.push(c)
+            0..=3 => buf.push(c),
+            _ => unreachable!(),
         }
     }
     panic!("Not found");
