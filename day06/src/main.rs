@@ -4,8 +4,8 @@ fn main() {
     let res = startofpacket(&datastream);
     println!("Start of packet: {}", res);
     //part 2
-    //let res = operation2(&datastream);
-    //println!("Summary2: {}", res);
+    let res = startofmessage(&datastream, 14);
+    println!("Start of message: {}", res);
 }
 fn parse(input: &str) -> Vec<char> {
     input
@@ -35,10 +35,21 @@ fn startofpacket(datastream: &[char]) -> usize {
         }
     }
     panic!("Not found");
-    0
 }
 
-fn startofmessage(datastream: &[char], len: usize) -> usize {}
+fn startofmessage(datastream: &[char], len: usize) -> usize {
+    'outer: for (i, _) in datastream.iter().enumerate().skip(len - 1) {
+        for j in 0..len {
+            for k in (j + 1)..len {
+                if datastream[i - j] == datastream[i - k] {
+                    continue 'outer;
+                }
+            }
+        }
+        return i + 1;
+    }
+    panic!("Not found");
+}
 
 #[test]
 fn test() {
@@ -53,6 +64,14 @@ fn test() {
     let test4 = parse("nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg");
     assert_eq!(startofpacket(&test4), 10);
     //part 2
-    // let res = operation2(&datastream);
-    // assert_eq!(res, 42);
+    let test = parse("mjqjpqmgbljsphdztnvjfqwrcgsmlb");
+    assert_eq!(startofmessage(&test, 14), 19);
+    let test = parse("bvwbjplbgvbhsrlpgdmjqwftvncz");
+    assert_eq!(startofmessage(&test, 14), 23);
+    let test = parse("nppdvjthqldpwncqszvftbrmjlhg");
+    assert_eq!(startofmessage(&test, 14), 23);
+    let test = parse("nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg");
+    assert_eq!(startofmessage(&test, 14), 29);
+    let test = parse("zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw");
+    assert_eq!(startofmessage(&test, 14), 26);
 }
