@@ -107,7 +107,7 @@ mod tree {
         }
         pub fn add_child(&mut self, parent: NodeId, child: T) -> NodeId {
             if self.elements.is_empty() {
-                assert!(parent == NodeId::root(), "Tree already has root");
+                assert!(parent == NodeId::root(), "Tree has no root yet");
             } else {
                 assert!(usize::from(parent) < self.elements.len(), "Invalid node id");
             }
