@@ -1,3 +1,4 @@
+use crate::tree::{NodeId, Tree};
 use itertools::Itertools;
 
 #[derive(Debug)]
@@ -65,69 +66,71 @@ struct DirSize {
     size: usize,
 }
 
-#[derive(Debug)]
-struct Leaf<T> {
-    children: Vec<usize>,
-    parent: usize,
-    el: T,
-}
+mod tree {
+    #[derive(Debug)]
+    struct Leaf<T> {
+        children: Vec<usize>,
+        parent: usize,
+        el: T,
+    }
 
-#[derive(Debug)]
-struct Tree<T> {
-    elements: Vec<Leaf<T>>,
-}
+    #[derive(Debug)]
+    pub struct Tree<T> {
+        elements: Vec<Leaf<T>>,
+    }
 
-type NodeId = usize;
+    pub type NodeId = usize;
 
-impl<T> Tree<T> {
-    fn new() -> Self {
-        Tree::<T> {
-            elements: Vec::new(),
-        }
-    }
-    fn add_child(&mut self, parent: NodeId, child: T) -> NodeId {
-        if self.elements.is_empty() {
-            assert!(parent == 0, "Tree already has root");
-        } else {
-            assert!(parent < self.elements.len(), "Invalid node id");
-        }
-        self.elements.push(Leaf::<T> {
-            children: Vec::new(),
-            el: child,
-            parent,
-        });
-        let id = self.elements.len() - 1;
-        if id != parent {
-            self.elements[parent].children.push(id);
-        }
-        id
-    }
-    fn get(&self, id: NodeId) -> &T {
-        assert!(id < self.elements.len(), "Invalid node id");
-        &self.elements[id].el
-    }
-    fn get_mut(&mut self, id: NodeId) -> &mut T {
-        assert!(id < self.elements.len(), "Invalid node id");
-        &mut self.elements[id].el
-    }
-    fn parent(&self, id: NodeId) -> NodeId {
-        self.elements[id].parent
-    }
-    fn apply_parents<F>(&mut self, mut id: NodeId, f: F)
-    where
-        F: Fn(&mut T),
-    {
-        assert!(id < self.elements.len(), "Invalid node id");
-        loop {
-            f(&mut self.elements[id].el);
-            if id == 0 {
-                break;
+    impl<T> Tree<T> {
+        pub fn new() -> Self {
+            Tree::<T> {
+                elements: Vec::new(),
             }
-            id = self.elements[id].parent;
         }
-    }
-    fn iter(&self) -> impl Iterator<Item = &T> {
-        self.elements.iter().map(|d| &d.el)
+        pub fn add_child(&mut self, parent: NodeId, child: T) -> NodeId {
+            if self.elements.is_empty() {
+                assert!(parent == 0, "Tree already has root");
+            } else {
+                assert!(parent < self.elements.len(), "Invalid node id");
+            }
+            self.elements.push(Leaf::<T> {
+                children: Vec::new(),
+                el: child,
+                parent,
+            });
+            let id = self.elements.len() - 1;
+            if id != parent {
+                self.elements[parent].children.push(id);
+            }
+            id
+        }
+        pub fn get(&self, id: NodeId) -> &T {
+            assert!(id < self.elements.len(), "Invalid node id");
+            &self.elements[id].el
+        }
+        fn get_mut(&mut self, id: NodeId) -> &mut T {
+            assert!(id < self.elements.len(), "Invalid node id");
+            &mut self.elements[id].el
+        }
+        pub fn parent(&self, id: NodeId) -> NodeId {
+            self.elements[id].parent
+        }
+        pub fn apply_parents<F>(&mut self, mut id: NodeId, f: F)
+        where
+            F: Fn(&mut T),
+        {
+            assert!(id < self.elements.len(), "Invalid node id");
+            loop {
+                f(&mut self.elements[id].el);
+                if id == 0 {
+                    break;
+                }
+                id = self.elements[id].parent;
+            }
+        }
+        pub fn iter(&self) -> impl Iterator<Item = &T> {
+            self.elements.iter().map(|d| &d.el)
+        }
     }
 }
 
