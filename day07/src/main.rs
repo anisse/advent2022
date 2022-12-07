@@ -77,13 +77,6 @@ struct Tree<T> {
     elements: Vec<Leaf<T>>,
 }
 
-/*
-impl<T> Iterator for Tree<T> {
-    type Item = T;
-
-    fn next(&mut self) -> Option<Self::Item> {}
-}
-*/
 
 fn eval_tree(commands: &[Cmd]) -> Tree<DirSize> {
     let mut elements: Vec<Leaf<DirSize>> = Vec::new();
