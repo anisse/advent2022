@@ -13,14 +13,12 @@ enum Cmd {
 
 fn main() {
     let commands = parse(include_str!("../input.txt"));
-    dbg!(&commands);
     //part 1
     let res = count_small_dirs(&commands);
-    dbg!(&res);
-    println!("Summary: {}", res);
+    println!("Smaller dirs: {}", res);
     //part 2
-    //let res = operation2(&commands);
-    //println!("Summary2: {}", res);
+    let res = find_target_delete(&commands);
+    println!("Delete target: {}", res);
 }
 fn parse(input: &str) -> Vec<Cmd> {
     let mut cmds = Vec::new();
@@ -31,7 +29,6 @@ fn parse(input: &str) -> Vec<Cmd> {
         let t = tokens.next().expect("nothing on line");
         assert_eq!(t, "$", "Unexpected token");
         let t = tokens.next().expect("no cmd");
-        dbg!(&t);
         let cmd = match t {
             "cd" => Cmd::Cd {
                 target: tokens.next().expect("no cd target").to_string(),
@@ -94,7 +91,6 @@ fn eval_tree(commands: &[Cmd]) -> Tree<DirSize> {
     let mut parent_id = 0;
     let mut current_id = 0;
     for cmd in commands.iter() {
-        dbg!(&cmd);
         match cmd {
             Cmd::Cd { target } => {
                 if target == ".." {
@@ -124,9 +120,6 @@ fn eval_tree(commands: &[Cmd]) -> Tree<DirSize> {
                     }
                     parent_id = current_id;
                     current_id = next;
-                    dbg!(parent_id);
-                    dbg!(current_id);
-                    dbg!(&target);
                 }
             }
             Cmd::Ls { files } => {
@@ -134,8 +127,6 @@ fn eval_tree(commands: &[Cmd]) -> Tree<DirSize> {
                     File::File { size, .. } => {
                         let mut x = current_id;
                         loop {
-                            dbg!(size);
-                            dbg!(&elements[x].el.name);
                             elements[x].el.size += size;
                             if x == 0 {
                                 break;
@@ -152,7 +143,6 @@ fn eval_tree(commands: &[Cmd]) -> Tree<DirSize> {
 }
 fn count_small_dirs(commands: &[Cmd]) -> usize {
     let tree = eval_tree(commands);
-    dbg!(&tree);
     tree.elements
         .iter()
         .map(|ds| ds.el.size)
@@ -160,14 +150,25 @@ fn count_small_dirs(commands: &[Cmd]) -> usize {
         .sum()
 }
 
+fn find_target_delete(commands: &[Cmd]) -> usize {
+    let tree = eval_tree(commands);
+    let mut dir_sizes: Vec<usize> = tree.elements.iter().map(|ds| ds.el.size).collect();
+    dir_sizes.sort();
+    let free_space = 70000000 - tree.elements[0].el.size;
+    let target_del = 30000000 - free_space;
+    dir_sizes
+        .into_iter()
+        .find(|x| *x >= target_del)
+        .expect("no target")
+}
+
 #[test]
 fn test() {
     let commands = parse(include_str!("../sample.txt"));
-    dbg!(&commands);
     //part 1
     let res = count_small_dirs(&commands);
     assert_eq!(res, 95437);
     //part 2
-    // let res = operation2(&commands);
-    // assert_eq!(res, 42);
+    let res = find_target_delete(&commands);
+    assert_eq!(res, 24933642);
 }
