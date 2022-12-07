@@ -69,8 +69,8 @@ struct DirSize {
 mod tree {
     #[derive(Debug)]
     struct Leaf<T> {
-        children: Vec<usize>,
-        parent: usize,
+        children: Vec<NodeId>,
+        parent: NodeId,
         el: T,
     }
 
@@ -79,7 +79,25 @@ mod tree {
         elements: Vec<Leaf<T>>,
     }
 
-    pub type NodeId = usize;
+    #[derive(PartialEq, Eq, Debug, Clone, Copy)]
+    pub struct NodeId {
+        inner: usize,
+    }
+    impl NodeId {
+        pub fn root() -> Self {
+            NodeId { inner: 0 }
+        }
+    }
+    impl From<NodeId> for usize {
+        fn from(n: NodeId) -> usize {
+            n.inner
+        }
+    }
+    impl From<usize> for NodeId {
+        fn from(inner: usize) -> NodeId {
+            NodeId { inner }
+        }
+    }
 
     impl<T> Tree<T> {
         pub fn new() -> Self {
@@ -89,9 +107,9 @@ mod tree {
         }
         pub fn add_child(&mut self, parent: NodeId, child: T) -> NodeId {
             if self.elements.is_empty() {
-                assert!(parent == 0, "Tree already has root");
+                assert!(parent == NodeId::root(), "Tree already has root");
             } else {
-                assert!(parent < self.elements.len(), "Invalid node id");
+                assert!(usize::from(parent) < self.elements.len(), "Invalid node id");
             }
             self.elements.push(Leaf::<T> {
                 children: Vec::new(),
@@ -99,33 +117,33 @@ mod tree {
                 parent,
             });
             let id = self.elements.len() - 1;
-            if id != parent {
-                self.elements[parent].children.push(id);
+            if id != parent.into() {
+                self.elements[usize::from(parent)].children.push(id.into());
             }
-            id
+            NodeId { inner: id }
         }
         pub fn get(&self, id: NodeId) -> &T {
-            assert!(id < self.elements.len(), "Invalid node id");
-            &self.elements[id].el
+            assert!(usize::from(id) < self.elements.len(), "Invalid node id");
+            &self.elements[usize::from(id)].el
         }
         fn get_mut(&mut self, id: NodeId) -> &mut T {
-            assert!(id < self.elements.len(), "Invalid node id");
-            &mut self.elements[id].el
+            assert!(usize::from(id) < self.elements.len(), "Invalid node id");
+            &mut self.elements[usize::from(id)].el
         }
         pub fn parent(&self, id: NodeId) -> NodeId {
-            self.elements[id].parent
+            self.elements[usize::from(id)].parent
         }
         pub fn apply_parents<F>(&mut self, mut id: NodeId, f: F)
         where
             F: Fn(&mut T),
         {
-            assert!(id < self.elements.len(), "Invalid node id");
+            assert!(usize::from(id) < self.elements.len(), "Invalid node id");
             loop {
-                f(&mut self.elements[id].el);
-                if id == 0 {
+                f(&mut self.elements[usize::from(id)].el);
+                if id == NodeId::root() {
                     break;
                 }
-                id = self.elements[id].parent;
+                id = self.elements[usize::from(id)].parent;
             }
         }
         pub fn iter(&self) -> impl Iterator<Item = &T> {
@@ -137,15 +155,15 @@ mod tree {
 fn eval_tree(commands: &[Cmd]) -> Tree<DirSize> {
     let mut t = Tree::<DirSize>::new();
     //let mut current_dir = "".to_string();
-    let mut parent_id = NodeId::default();
-    let mut current_id = NodeId::default();
+    let mut parent_id = NodeId::root();
+    let mut current_id = NodeId::root();
     for cmd in commands.iter() {
         match cmd {
             Cmd::Cd { target } => {
                 if target == ".." {
                     assert!(
                         parent_id != current_id,
-                        "Going up too much ? {}, {}, status: {:?}",
+                        "Going up too much ? {:?}, {:?}, status: {:?}",
                         current_id,
                         parent_id,
                         &t,
@@ -184,7 +202,7 @@ fn find_target_delete(commands: &[Cmd]) -> usize {
     let tree = eval_tree(commands);
     let mut dir_sizes: Vec<usize> = tree.iter().map(|ds| ds.size).collect();
     dir_sizes.sort();
-    let free_space = 70000000 - tree.get(NodeId::default()).size;
+    let free_space = 70000000 - tree.get(NodeId::root()).size;
     let target_del = 30000000 - free_space;
     dir_sizes
         .into_iter()
