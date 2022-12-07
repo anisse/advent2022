@@ -77,12 +77,65 @@ struct Tree<T> {
     elements: Vec<Leaf<T>>,
 }
 
+type NodeId = usize;
+
+impl<T> Tree<T> {
+    fn new() -> Self {
+        Tree::<T> {
+            elements: Vec::new(),
+        }
+    }
+    fn add_child(&mut self, parent: NodeId, child: T) -> NodeId {
+        if self.elements.is_empty() {
+            assert!(parent == 0, "Tree already has root");
+        } else {
+            assert!(parent < self.elements.len(), "Invalid node id");
+        }
+        self.elements.push(Leaf::<T> {
+            children: Vec::new(),
+            el: child,
+            parent,
+        });
+        let id = self.elements.len() - 1;
+        if id != parent {
+            self.elements[parent].children.push(id);
+        }
+        id
+    }
+    fn get(&self, id: NodeId) -> &T {
+        assert!(id < self.elements.len(), "Invalid node id");
+        &self.elements[id].el
+    }
+    fn get_mut(&mut self, id: NodeId) -> &mut T {
+        assert!(id < self.elements.len(), "Invalid node id");
+        &mut self.elements[id].el
+    }
+    fn parent(&self, id: NodeId) -> NodeId {
+        self.elements[id].parent
+    }
+    fn apply_parents<F>(&mut self, mut id: NodeId, f: F)
+    where
+        F: Fn(&mut T),
+    {
+        assert!(id < self.elements.len(), "Invalid node id");
+        loop {
+            f(&mut self.elements[id].el);
+            if id == 0 {
+                break;
+            }
+            id = self.elements[id].parent;
+        }
+    }
+    fn iter(&self) -> std::slice::Iter<Leaf<T>> {
+        self.elements.iter()
+    }
+}
 
 fn eval_tree(commands: &[Cmd]) -> Tree<DirSize> {
-    let mut elements: Vec<Leaf<DirSize>> = Vec::new();
+    let mut t = Tree::<DirSize>::new();
     //let mut current_dir = "".to_string();
-    let mut parent_id = 0;
-    let mut current_id = 0;
+    let mut parent_id = NodeId::default();
+    let mut current_id = NodeId::default();
     for cmd in commands.iter() {
         match cmd {
             Cmd::Cd { target } => {
@@ -92,52 +145,36 @@ fn eval_tree(commands: &[Cmd]) -> Tree<DirSize> {
                         "Going up too much ? {}, {}, status: {:?}",
                         current_id,
                         parent_id,
-                        &elements,
+                        &t,
                     );
                     // go up
-                    (parent_id, current_id) = (elements[parent_id].parent, parent_id);
+                    (parent_id, current_id) = (t.parent(parent_id), parent_id);
                 } else {
-                    //current_dir = target.clone();
-                    elements.push(Leaf::<DirSize> {
-                        children: Vec::new(),
-                        el: DirSize {
+                    let new = t.add_child(
+                        current_id,
+                        DirSize {
                             name: target.clone(),
                             size: 0,
                         },
-                        parent: current_id,
-                    });
-                    let next = elements.len() - 1;
-                    if parent_id != current_id {
-                        //already passed root
-                        elements[parent_id].children.push(next);
-                    }
-                    parent_id = current_id;
-                    current_id = next;
+                    );
+                    (parent_id, current_id) = (current_id, new);
                 }
             }
             Cmd::Ls { files } => {
                 files.iter().for_each(|f| match f {
                     File::File { size, .. } => {
-                        let mut x = current_id;
-                        loop {
-                            elements[x].el.size += size;
-                            if x == 0 {
-                                break;
-                            }
-                            x = elements[x].parent;
-                        }
+                        t.apply_parents(current_id, |d| d.size += size);
                     }
                     File::Dir { .. } => {}
                 });
             }
         }
     }
-    Tree { elements }
+    t
 }
 fn count_small_dirs(commands: &[Cmd]) -> usize {
     let tree = eval_tree(commands);
-    tree.elements
-        .iter()
+    tree.iter()
         .map(|ds| ds.el.size)
         .filter(|s| *s < 100000)
         .sum()
@@ -145,9 +182,9 @@ fn count_small_dirs(commands: &[Cmd]) -> usize {
 
 fn find_target_delete(commands: &[Cmd]) -> usize {
     let tree = eval_tree(commands);
-    let mut dir_sizes: Vec<usize> = tree.elements.iter().map(|ds| ds.el.size).collect();
+    let mut dir_sizes: Vec<usize> = tree.iter().map(|ds| ds.el.size).collect();
     dir_sizes.sort();
-    let free_space = 70000000 - tree.elements[0].el.size;
+    let free_space = 70000000 - tree.get(NodeId::default()).size;
     let target_del = 30000000 - free_space;
     dir_sizes
         .into_iter()
