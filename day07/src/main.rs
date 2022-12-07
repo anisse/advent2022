@@ -126,8 +126,8 @@ impl<T> Tree<T> {
             id = self.elements[id].parent;
         }
     }
-    fn iter(&self) -> std::slice::Iter<Leaf<T>> {
-        self.elements.iter()
+    fn iter(&self) -> impl Iterator<Item = &T> {
+        self.elements.iter().map(|d| &d.el)
     }
 }
 
@@ -174,15 +174,12 @@ fn eval_tree(commands: &[Cmd]) -> Tree<DirSize> {
 }
 fn count_small_dirs(commands: &[Cmd]) -> usize {
     let tree = eval_tree(commands);
-    tree.iter()
-        .map(|ds| ds.el.size)
-        .filter(|s| *s < 100000)
-        .sum()
+    tree.iter().map(|ds| ds.size).filter(|s| *s < 100000).sum()
 }
 
 fn find_target_delete(commands: &[Cmd]) -> usize {
     let tree = eval_tree(commands);
-    let mut dir_sizes: Vec<usize> = tree.iter().map(|ds| ds.el.size).collect();
+    let mut dir_sizes: Vec<usize> = tree.iter().map(|ds| ds.size).collect();
     dir_sizes.sort();
     let free_space = 70000000 - tree.get(NodeId::default()).size;
     let target_del = 30000000 - free_space;
