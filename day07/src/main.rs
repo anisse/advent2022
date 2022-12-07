@@ -62,7 +62,7 @@ fn parse(input: &str) -> Vec<Cmd> {
 
 #[derive(Debug)]
 struct DirSize {
-    name: String,
+    name: String, // We don't use names, but keep them for debugging
     size: usize,
 }
 
