@@ -4,8 +4,8 @@ fn main() {
     let res = count_visible(&trees);
     println!("Summary: {}", res);
     //part 2
-    //let res = count_visible2(&trees);
-    //println!("Summary2: {}", res);
+    let res = max_view(&trees);
+    println!("Max view: {}", res);
 }
 fn parse(input: &str) -> Vec<Vec<u8>> {
     input
@@ -14,7 +14,7 @@ fn parse(input: &str) -> Vec<Vec<u8>> {
             l.chars()
                 .map(|x| {
                     assert!(x.is_ascii_digit(), "not int");
-                    x as u8 - '0' as u8
+                    x as u8 - b'0'
                 })
                 .collect()
         })
@@ -98,6 +98,47 @@ fn count_visible(trees: &[Vec<u8>]) -> usize {
     count
 }
 
+fn count_sightline(l: &[Vec<u8>], i: usize, j: usize) -> usize {
+    let ilen = l.len() as isize;
+    let jlen = l[0].len() as isize;
+
+    [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        .iter()
+        .map(|(iinc, jinc)| {
+            let mut ipos = i as isize;
+            let mut jpos = j as isize;
+            let mut dir_count = 0;
+            loop {
+                ipos += iinc;
+                jpos += jinc;
+                if ipos < 0 || ipos >= ilen || jpos < 0 || jpos >= jlen {
+                    break;
+                }
+                dir_count += 1;
+                let x = l[ipos as usize][jpos as usize];
+                //println!("Comparing {} with {x} at y={ipos} x={jpos}", l[i][j]);
+                if x >= l[i][j] {
+                    break;
+                }
+            }
+            dir_count
+        })
+        .fold(1, |acc, x| (acc as usize) * (x as usize))
+}
+fn max_view(l: &[Vec<u8>]) -> usize {
+    l.iter()
+        .enumerate()
+        .map(|(i, line)| {
+            line.iter()
+                .enumerate()
+                .map(|(j, _)| count_sightline(l, i, j))
+                .max()
+                .expect("no max")
+        })
+        .max()
+        .expect("no max")
+}
+
 #[test]
 fn test() {
     let trees = parse(include_str!("../sample.txt"));
@@ -106,6 +147,7 @@ fn test() {
     let res = count_visible(&trees);
     assert_eq!(res, 21);
     //part 2
-    // let res = count_visible2(&trees);
-    // assert_eq!(res, 42);
+    assert_eq!(count_sightline(&trees, 1, 2), 4);
+    assert_eq!(count_sightline(&trees, 3, 2), 8);
+    // no more tests, let's hope it works ?
 }
