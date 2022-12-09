@@ -62,7 +62,7 @@ fn simulate_move(mov: Move, mut head: Pos, mut tail: Pos) -> (Pos, Pos) {
         Left => (-1, 0),
         Right => (1, 0),
     };
-    let headinit = head.clone();
+    let headinit = head;
     head.x += xdir;
     head.y += ydir;
     if !is_adjacent(&head, &tail) {
