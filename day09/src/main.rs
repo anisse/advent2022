@@ -80,34 +80,34 @@ fn is_adjacent(head: &Pos, tail: &Pos) -> bool {
 }
 
 fn count_new_tail(moves: &[(Move, u8)]) -> usize {
-    let mut pos = [Pos::default(); 10];
+    let mut knots = [Pos::default(); 10];
     let mut tailpos: HashMap<Pos, ()> = HashMap::new();
     moves.iter().for_each(|(mov, count)| {
         (0..*count).for_each(|_| {
-            simulate_new_move(mov.clone(), &mut pos);
+            simulate_new_move(mov.clone(), &mut knots);
             //println!("After move {mov:?}: {pos:?}");
-            tailpos.insert(pos[9], ());
+            tailpos.insert(knots[9], ());
         });
     });
     tailpos.len()
 }
 
-fn simulate_new_move(mov: Move, positions: &mut [Pos; 10]) {
+fn simulate_new_move(mov: Move, knots: &mut [Pos]) {
     let (xdir, ydir) = match mov {
         Up => (0, -1),
         Down => (0, 1),
         Left => (-1, 0),
         Right => (1, 0),
     };
-    positions[0].x += xdir;
-    positions[0].y += ydir;
-    (0..positions.len() - 1).for_each(|i| {
+    knots[0].x += xdir;
+    knots[0].y += ydir;
+    (0..knots.len() - 1).for_each(|i| {
         let (hi, ti) = (i, i + 1);
-        if !is_adjacent(&positions[hi], &positions[ti]) {
-            let xdiff = positions[hi].x - positions[ti].x;
-            let ydiff = positions[hi].y - positions[ti].y;
-            positions[ti].x += xdiff.signum();
-            positions[ti].y += ydiff.signum();
+        if !is_adjacent(&knots[hi], &knots[ti]) {
+            let xdiff = knots[hi].x - knots[ti].x;
+            let ydiff = knots[hi].y - knots[ti].y;
+            knots[ti].x += xdiff.signum();
+            knots[ti].y += ydiff.signum();
         }
     })
 }
