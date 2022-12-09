@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::Move::*;
 
@@ -81,12 +81,12 @@ fn is_adjacent(head: &Pos, tail: &Pos) -> bool {
 
 fn count_new_tail(moves: &[(Move, u8)]) -> usize {
     let mut knots = [Pos::default(); 10];
-    let mut tailpos: HashMap<Pos, ()> = HashMap::new();
+    let mut tailpos: HashSet<Pos> = HashSet::new();
     moves.iter().for_each(|(mov, count)| {
         (0..*count).for_each(|_| {
             simulate_new_move(mov.clone(), &mut knots);
             //println!("After move {mov:?}: {pos:?}");
-            tailpos.insert(knots[9], ());
+            tailpos.insert(knots[9]);
         });
     });
     tailpos.len()
