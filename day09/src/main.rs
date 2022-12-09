@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use crate::Move::*;
 
@@ -38,39 +38,13 @@ fn parse(input: &str) -> Vec<(Move, u8)> {
 }
 
 fn count_tail_pos(moves: &[(Move, u8)]) -> usize {
-    let (mut head, mut tail) = (Pos::default(), Pos::default());
-    let mut tailpos: HashMap<Pos, ()> = HashMap::new();
-    moves.iter().for_each(|(mov, count)| {
-        (0..*count).for_each(|_| {
-            (head, tail) = simulate_move(mov.clone(), head, tail);
-            tailpos.insert(tail, ());
-        });
-    });
-    tailpos.len()
+    count_tail_common(moves, 2)
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Hash, Copy)]
 struct Pos {
     x: i32,
     y: i32,
-}
-
-fn simulate_move(mov: Move, mut head: Pos, mut tail: Pos) -> (Pos, Pos) {
-    let (xdir, ydir) = match mov {
-        Up => (0, -1),
-        Down => (0, 1),
-        Left => (-1, 0),
-        Right => (1, 0),
-    };
-    let headinit = head;
-    head.x += xdir;
-    head.y += ydir;
-    if !is_adjacent(&head, &tail) {
-        // tail "catchup"
-        tail.x = headinit.x;
-        tail.y = headinit.y;
-    }
-    (head, tail)
 }
 
 fn is_adjacent(head: &Pos, tail: &Pos) -> bool {
@@ -80,13 +54,16 @@ fn is_adjacent(head: &Pos, tail: &Pos) -> bool {
 }
 
 fn count_new_tail(moves: &[(Move, u8)]) -> usize {
-    let mut knots = [Pos::default(); 10];
+    count_tail_common(moves, 10)
+}
+fn count_tail_common(moves: &[(Move, u8)], len: usize) -> usize {
+    let mut knots = vec![Pos::default(); len];
     let mut tailpos: HashSet<Pos> = HashSet::new();
     moves.iter().for_each(|(mov, count)| {
         (0..*count).for_each(|_| {
             simulate_new_move(mov.clone(), &mut knots);
             //println!("After move {mov:?}: {pos:?}");
-            tailpos.insert(knots[9]);
+            tailpos.insert(knots[len - 1]);
         });
     });
     tailpos.len()
