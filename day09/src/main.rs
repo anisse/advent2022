@@ -58,15 +58,16 @@ fn count_new_tail(moves: &[(Move, u8)]) -> usize {
 }
 fn count_tail_common(moves: &[(Move, u8)], len: usize) -> usize {
     let mut knots = vec![Pos::default(); len];
-    let mut tailpos: HashSet<Pos> = HashSet::new();
-    moves.iter().for_each(|(mov, count)| {
-        (0..*count).for_each(|_| {
-            simulate_new_move(mov.clone(), &mut knots);
+    moves
+        .iter()
+        .flat_map(|(mov, count)| (0..*count).map(|_| mov.clone()))
+        .map(|mov| {
+            simulate_new_move(mov, &mut knots);
             //println!("After move {mov:?}: {pos:?}");
-            tailpos.insert(knots[len - 1]);
-        });
-    });
-    tailpos.len()
+            knots[len - 1]
+        })
+        .collect::<HashSet<Pos>>()
+        .len()
 }
 
 fn simulate_new_move(mov: Move, knots: &mut [Pos]) {
