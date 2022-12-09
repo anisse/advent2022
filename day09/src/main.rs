@@ -6,10 +6,10 @@ fn main() {
     let moves = parse(include_str!("../input.txt"));
     //part 1
     let res = count_tail_pos(&moves);
-    println!("Summary: {}", res);
+    println!("Number of unique tail positions: {}", res);
     //part 2
     let res = count_new_tail(&moves);
-    println!("Summary2: {}", res);
+    println!("Number of unique tail positions (long rope): {}", res);
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
 enum Move {
