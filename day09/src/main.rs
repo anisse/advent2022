@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::Move::*;
 
 fn main() {
@@ -9,6 +11,7 @@ fn main() {
     //let res = operation2(&moves);
     //println!("Summary2: {}", res);
 }
+#[derive(Debug, PartialEq, Eq, Clone)]
 enum Move {
     Up,
     Down,
@@ -33,15 +36,47 @@ fn parse(input: &str) -> Vec<(Move, u8)> {
         })
         .collect()
 }
+
 fn count_tail_pos(moves: &[(Move, u8)]) -> usize {
-    let mut count = 0;
-    for _ in moves.iter() {
-        if true {
-            count += 1
-        }
-        todo!()
+    let (mut head, mut tail) = (Pos::default(), Pos::default());
+    let mut tailpos: HashMap<Pos, ()> = HashMap::new();
+    moves.iter().for_each(|(mov, count)| {
+        (0..*count).for_each(|_| {
+            (head, tail) = simulate_move(mov.clone(), head, tail);
+            tailpos.insert(tail, ());
+        });
+    });
+    tailpos.len()
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Default, Hash, Copy)]
+struct Pos {
+    x: i32,
+    y: i32,
+}
+
+fn simulate_move(mov: Move, mut head: Pos, mut tail: Pos) -> (Pos, Pos) {
+    let (xdir, ydir) = match mov {
+        Up => (0, -1),
+        Down => (0, 1),
+        Left => (-1, 0),
+        Right => (1, 0),
+    };
+    let headinit = head.clone();
+    head.x += xdir;
+    head.y += ydir;
+    if !is_adjacent(&head, &tail) {
+        // tail "catchup"
+        tail.x = headinit.x;
+        tail.y = headinit.y;
     }
-    count
+    (head, tail)
+}
+
+fn is_adjacent(head: &Pos, tail: &Pos) -> bool {
+    let xdiff = head.x - tail.x;
+    let ydiff = head.y - tail.y;
+    (-1..=1).contains(&xdiff) && (-1..=1).contains(&ydiff)
 }
 
 #[test]
