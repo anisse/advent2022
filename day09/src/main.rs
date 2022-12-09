@@ -101,18 +101,15 @@ fn simulate_new_move(mov: Move, positions: &mut [Pos; 10]) {
     };
     positions[0].x += xdir;
     positions[0].y += ydir;
-    (0..positions.len())
-        .collect::<Vec<usize>>()
-        .windows(2)
-        .for_each(|s| {
-            let (hi, ti) = (s[0], s[1]);
-            if !is_adjacent(&positions[hi], &positions[ti]) {
-                let xdiff = positions[hi].x - positions[ti].x;
-                let ydiff = positions[hi].y - positions[ti].y;
-                positions[ti].x += xdiff.signum();
-                positions[ti].y += ydiff.signum();
-            }
-        })
+    (0..positions.len() - 1).for_each(|i| {
+        let (hi, ti) = (i, i + 1);
+        if !is_adjacent(&positions[hi], &positions[ti]) {
+            let xdiff = positions[hi].x - positions[ti].x;
+            let ydiff = positions[hi].y - positions[ti].y;
+            positions[ti].x += xdiff.signum();
+            positions[ti].y += ydiff.signum();
+        }
+    })
 }
 
 #[test]
