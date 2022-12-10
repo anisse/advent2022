@@ -105,6 +105,42 @@ fn run_cycle(instructions: &[Ins], s: &mut State) {
     }
 }
 
+fn crt(instructions: &[Ins]) -> String {
+    let mut s = State::default();
+    instructions
+        .iter()
+        .flat_map(|_| {
+            let pc_start = s.pc;
+            let mut res = Vec::new();
+            while s.pc == pc_start {
+                run_cycle(instructions, &mut s);
+                /*
+                println!(
+                    "pc: {:02} {:?} -> {:03} (waiting: {:02})",
+                    s.pc,
+                    instructions[s.pc % instructions.len()],
+                    s.x,
+                    s.wait_add,
+                );
+                */
+                res.push(s.x)
+            }
+            res
+        })
+        .enumerate()
+        //.map(|(i, x)| (i + 1, x))
+        .map(|(i, x)| (i, (x - 1..=x + 1).contains(&(i as i32 % 40))))
+        .map(|(i, val)| (i, if val { '#' } else { '.' }))
+        .flat_map(|(i, val)| {
+            if i > 1 && i % 40 == 0 {
+                vec!['\n', val]
+            } else {
+                vec![val]
+            }
+        })
+        .collect()
+}
+
 #[test]
 fn test() {
     let instructions = parse(
