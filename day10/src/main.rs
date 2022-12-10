@@ -6,8 +6,8 @@ fn main() {
     let res = signal_strength(&instructions);
     println!("Summary: {}", res);
     //part 2
-    //let res = operation2(&instructions);
-    //println!("Summary2: {}", res);
+    let res = crt(&instructions);
+    println!("Summary2: \n{}", res);
 }
 fn parse(input: &str) -> Vec<Ins> {
     input
@@ -57,14 +57,6 @@ fn signal_strength(instructions: &[Ins]) -> i32 {
         .map(|(i, x)| (i as i32) * x)
         .sum()
 }
-/*
-fn ins_states(ins: &Ins, x: i32) -> Vec<i32> {
-    match ins {
-        Noop => vec![x],
-        Addx(i) => vec![x, x + (*i as i32)],
-    }
-}
-*/
 
 #[derive(Debug)]
 struct State {
@@ -138,6 +130,14 @@ addx -5",
     let res = signal_strength(&instructions);
     assert_eq!(res, 13140);
     //part 2
-    // let res = operation2(&instructions);
-    // assert_eq!(res, 42);
+    let res = crt(&instructions);
+    assert_eq!(
+        res,
+        "##..##..##..##..##..##..##..##..##..##..
+###...###...###...###...###...###...###.
+####....####....####....####....####....
+#####.....#####.....#####.....#####.....
+######......######......######......####
+#######.......#######.......#######....."
+    );
 }
