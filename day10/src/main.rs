@@ -4,10 +4,10 @@ fn main() {
     let instructions = parse(include_str!("../input.txt"));
     //part 1
     let res = signal_strength(&instructions);
-    println!("Summary: {}", res);
+    println!("Signal strength: {}", res);
     //part 2
     let res = crt(&instructions);
-    println!("Summary2: \n{}", res);
+    println!("CRT:\n{}", res);
 }
 fn parse(input: &str) -> Vec<Ins> {
     input
