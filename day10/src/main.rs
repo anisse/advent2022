@@ -50,10 +50,12 @@ fn signal_strength(instructions: &[Ins]) -> i32 {
         .enumerate()
         .map(|(i, x)| (i + 1, x))
         .filter(|(i, _)| *i >= 20 && ((*i - 20) % 40) == 0)
+        /*
         .filter(|(i, x)| {
             println!("{i}: {x}");
             true
         })
+        */
         .map(|(i, x)| (i as i32) * x)
         .sum()
 }
