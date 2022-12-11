@@ -6,15 +6,15 @@ fn main() {
     let res = monkey_business(&monkeys);
     println!("Monkey business: {}", res);
     //part 2
-    //let res = operation2(&monkeys);
-    //println!("Summary2: {}", res);
+    let res = monkey_business_2(&monkeys);
+    println!("Monkey biz 2: {}", res);
 }
 
 #[derive(Debug, Clone)]
 struct Monkey {
-    items: Vec<u32>,
+    items: Vec<u64>,
     op: Op,
-    div: u32,
+    div: u64,
     pass_true: usize,
     pass_false: usize,
 }
@@ -31,8 +31,8 @@ impl Display for Monkey {
 
 #[derive(Debug, Clone)]
 enum Op {
-    Mul(u32),
-    Add(u32),
+    Mul(u64),
+    Add(u64),
     Square,
 }
 
@@ -133,7 +133,7 @@ fn monkey_turn(monkeys: &mut [Monkey], m: usize) {
     let (op, div) = (monkeys[m].op.clone(), monkeys[m].div);
     let (pass_true, pass_false) = (monkeys[m].pass_true, monkeys[m].pass_false);
     #[allow(clippy::needless_collect)]
-    let send: Vec<(usize, u32)> = monkeys[m]
+    let send: Vec<(usize, u64)> = monkeys[m]
         .items
         .drain(0..)
         .map(|item| {
@@ -154,6 +154,54 @@ fn monkey_turn(monkeys: &mut [Monkey], m: usize) {
         .for_each(|(dest, item)| monkeys[dest].items.push(item));
 }
 
+fn common_divisible(monkeys: &[Monkey]) -> u64 {
+    monkeys.iter().map(|m| m.div).product()
+}
+fn monkey_turn_2(monkeys: &mut [Monkey], m: usize) {
+    let (op, div) = (monkeys[m].op.clone(), monkeys[m].div);
+    let (pass_true, pass_false) = (monkeys[m].pass_true, monkeys[m].pass_false);
+    let common = common_divisible(monkeys);
+    #[allow(clippy::needless_collect)]
+    let send: Vec<(usize, u64)> = monkeys[m]
+        .items
+        .drain(0..)
+        .map(|item| {
+            let level = match op {
+                Op::Mul(x) => item * x,
+                Op::Add(x) => item + x,
+                Op::Square => item * item,
+            } % common;
+            let dest = if level % div == 0 {
+                pass_true
+            } else {
+                pass_false
+            };
+            (dest, level)
+        })
+        .collect();
+    send.into_iter()
+        .for_each(|(dest, item)| monkeys[dest].items.push(item));
+}
+fn monkey_business_2(monkeys: &[Monkey]) -> usize {
+    let mut monkeys = monkeys.to_vec();
+    let mut counts: Vec<usize> = vec![0; monkeys.len()];
+    for round in 0..10000 {
+        for i in 0..monkeys.len() {
+            counts[i] += monkeys[i].items.len();
+            monkey_turn_2(&mut monkeys, i);
+        }
+        println!("After round {round}");
+        monkeys
+            .iter()
+            .enumerate()
+            .for_each(|(i, m)| println!("Monkey {i} has {m}"));
+        dbg!(&counts);
+    }
+
+    counts.sort_by(|a, b| b.cmp(a));
+    counts.iter().take(2).product()
+}
+
 #[test]
 fn test() {
     let monkeys = parse(include_str!("../sample.txt"));
@@ -161,6 +209,6 @@ fn test() {
     let res = monkey_business(&monkeys);
     assert_eq!(res, 10605);
     //part 2
-    // let res = operation2(&monkeys);
-    // assert_eq!(res, 42);
+    let res = monkey_business_2(&monkeys);
+    assert_eq!(res, 2713310158);
 }
