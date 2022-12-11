@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 fn main() {
     let monkeys = parse(include_str!("../input.txt"));
     //part 1
@@ -8,19 +10,29 @@ fn main() {
     //println!("Summary2: {}", res);
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Monkey {
-    items: Vec<u8>,
+    items: Vec<u32>,
     op: Op,
-    div: usize,
-    pass_true: u8,
-    pass_false: u8,
+    div: u32,
+    pass_true: usize,
+    pass_false: usize,
 }
 
-#[derive(Debug)]
+impl Display for Monkey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "items: ")?;
+        for i in self.items.iter() {
+            write!(f, "{i} ")?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
 enum Op {
-    Mul(usize),
-    Add(usize),
+    Mul(u32),
+    Add(u32),
     Square,
 }
 
@@ -96,25 +108,56 @@ fn parse(input: &str) -> Vec<Monkey> {
             }
         })
         .collect()
-
-    //.map(|x| x.parse().expect("not int"))
 }
 fn monkey_business(monkeys: &[Monkey]) -> usize {
-    let mut count = 0;
-    for _ in monkeys.iter() {
-        if true {
-            count += 1
+    let mut monkeys = monkeys.to_vec();
+    let mut counts: Vec<usize> = vec![0; monkeys.len()];
+    for round in 0..20 {
+        for i in 0..monkeys.len() {
+            counts[i] += monkeys[i].items.len();
+            monkey_turn(&mut monkeys, i);
         }
-        todo!()
+        println!("After round {round}");
+        monkeys
+            .iter()
+            .enumerate()
+            .for_each(|(i, m)| println!("Monkey {i} has {m}"));
+        dbg!(&counts);
     }
-    count
+
+    counts.sort_by(|a, b| b.cmp(a));
+    counts.iter().take(2).product()
+}
+
+fn monkey_turn(monkeys: &mut [Monkey], m: usize) {
+    let (op, div) = (monkeys[m].op.clone(), monkeys[m].div);
+    let (pass_true, pass_false) = (monkeys[m].pass_true, monkeys[m].pass_false);
+    #[allow(clippy::needless_collect)]
+    let send: Vec<(usize, u32)> = monkeys[m]
+        .items
+        .drain(0..)
+        .map(|item| {
+            let level = match op {
+                Op::Mul(x) => item * x,
+                Op::Add(x) => item + x,
+                Op::Square => item * item,
+            } / 3;
+            let dest = if level % div == 0 {
+                pass_true
+            } else {
+                pass_false
+            };
+            (dest, level)
+        })
+        .collect();
+    send.into_iter()
+        .for_each(|(dest, item)| monkeys[dest].items.push(item));
 }
 
 #[test]
 fn test() {
     let monkeys = parse(include_str!("../sample.txt"));
     //part 1
-    dbg!(&monkeys);
     let res = monkey_business(&monkeys);
     assert_eq!(res, 10605);
     //part 2
