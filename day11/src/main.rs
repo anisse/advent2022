@@ -110,69 +110,44 @@ fn parse(input: &str) -> Vec<Monkey> {
         .collect()
 }
 fn monkey_business(monkeys: &[Monkey]) -> usize {
-    let mut monkeys = monkeys.to_vec();
-    let mut counts: Vec<usize> = vec![0; monkeys.len()];
-    for round in 0..20 {
-        for i in 0..monkeys.len() {
-            counts[i] += monkeys[i].items.len();
-            monkey_turn(&mut monkeys, i);
-        }
-        /*
-        println!("After round {round}");
-        monkeys
-            .iter()
-            .enumerate()
-            .for_each(|(i, m)| println!("Monkey {i} has {m}"));
-        dbg!(&counts);
-        */
-    }
-
-    counts.sort_by(|a, b| b.cmp(a));
-    counts.iter().take(2).product()
-}
-
-fn monkey_turn(monkeys: &mut [Monkey], m: usize) {
-    let (op, div) = (monkeys[m].op.clone(), monkeys[m].div);
-    let (pass_true, pass_false) = (monkeys[m].pass_true, monkeys[m].pass_false);
-    #[allow(clippy::needless_collect)]
-    let send: Vec<(usize, u64)> = monkeys[m]
-        .items
-        .drain(0..)
-        .map(|item| {
-            let level = match op {
-                Op::Mul(x) => item * x,
-                Op::Add(x) => item + x,
-                Op::Square => item * item,
-            } / 3;
-            let dest = if level % div == 0 {
-                pass_true
-            } else {
-                pass_false
-            };
-            (dest, level)
-        })
-        .collect();
-    send.into_iter()
-        .for_each(|(dest, item)| monkeys[dest].items.push(item));
+    monkey_business_common(monkeys, 20, &|x| x / 3)
 }
 
 fn common_divisible(monkeys: &[Monkey]) -> u64 {
     monkeys.iter().map(|m| m.div).product()
 }
-fn monkey_turn_2(monkeys: &mut [Monkey], m: usize) {
+fn monkey_business_2(monkeys: &[Monkey]) -> usize {
+    let common = common_divisible(monkeys);
+    monkey_business_common(monkeys, 10000, &|x| x % common)
+}
+
+fn monkey_business_common(monkeys: &[Monkey], rounds: usize, op: &dyn Fn(u64) -> u64) -> usize {
+    let mut monkeys = monkeys.to_vec();
+    let mut counts: Vec<usize> = vec![0; monkeys.len()];
+    for _ in 0..rounds {
+        for i in 0..monkeys.len() {
+            counts[i] += monkeys[i].items.len();
+            monkey_turn_common(&mut monkeys, i, op);
+        }
+    }
+
+    counts.sort_by(|a, b| b.cmp(a));
+    counts.iter().take(2).product()
+}
+
+fn monkey_turn_common(monkeys: &mut [Monkey], m: usize, control: &dyn Fn(u64) -> u64) {
     let (op, div) = (monkeys[m].op.clone(), monkeys[m].div);
     let (pass_true, pass_false) = (monkeys[m].pass_true, monkeys[m].pass_false);
-    let common = common_divisible(monkeys);
-    #[allow(clippy::needless_collect)]
+    #[allow(clippy::needless_collect)] // borrow checker workaround
     let send: Vec<(usize, u64)> = monkeys[m]
         .items
         .drain(0..)
         .map(|item| {
-            let level = match op {
+            let level = control(match op {
                 Op::Mul(x) => item * x,
                 Op::Add(x) => item + x,
                 Op::Square => item * item,
-            } % common;
+            });
             let dest = if level % div == 0 {
                 pass_true
             } else {
@@ -183,27 +158,6 @@ fn monkey_turn_2(monkeys: &mut [Monkey], m: usize) {
         .collect();
     send.into_iter()
         .for_each(|(dest, item)| monkeys[dest].items.push(item));
-}
-fn monkey_business_2(monkeys: &[Monkey]) -> usize {
-    let mut monkeys = monkeys.to_vec();
-    let mut counts: Vec<usize> = vec![0; monkeys.len()];
-    for round in 0..10000 {
-        for i in 0..monkeys.len() {
-            counts[i] += monkeys[i].items.len();
-            monkey_turn_2(&mut monkeys, i);
-        }
-        /*
-        println!("After round {round}");
-        monkeys
-            .iter()
-            .enumerate()
-            .for_each(|(i, m)| println!("Monkey {i} has {m}"));
-        dbg!(&counts);
-        */
-    }
-
-    counts.sort_by(|a, b| b.cmp(a));
-    counts.iter().take(2).product()
 }
 
 #[test]
