@@ -138,7 +138,8 @@ fn monkey_business_common(monkeys: &[Monkey], rounds: usize, op: &dyn Fn(u64) ->
 fn monkey_turn_common(monkeys: &mut [Monkey], m: usize, control: &dyn Fn(u64) -> u64) {
     let (op, div) = (monkeys[m].op.clone(), monkeys[m].div);
     let (pass_true, pass_false) = (monkeys[m].pass_true, monkeys[m].pass_false);
-    #[allow(clippy::needless_collect)] // borrow checker workaround
+    #[allow(clippy::needless_collect)]
+    // borrow checker workaround, see: https://github.com/rust-lang/rust-clippy/issues/6066
     let send: Vec<(usize, u64)> = monkeys[m]
         .items
         .drain(0..)
