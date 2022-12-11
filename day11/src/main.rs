@@ -117,12 +117,14 @@ fn monkey_business(monkeys: &[Monkey]) -> usize {
             counts[i] += monkeys[i].items.len();
             monkey_turn(&mut monkeys, i);
         }
+        /*
         println!("After round {round}");
         monkeys
             .iter()
             .enumerate()
             .for_each(|(i, m)| println!("Monkey {i} has {m}"));
         dbg!(&counts);
+        */
     }
 
     counts.sort_by(|a, b| b.cmp(a));
@@ -190,12 +192,14 @@ fn monkey_business_2(monkeys: &[Monkey]) -> usize {
             counts[i] += monkeys[i].items.len();
             monkey_turn_2(&mut monkeys, i);
         }
+        /*
         println!("After round {round}");
         monkeys
             .iter()
             .enumerate()
             .for_each(|(i, m)| println!("Monkey {i} has {m}"));
         dbg!(&counts);
+        */
     }
 
     counts.sort_by(|a, b| b.cmp(a));
