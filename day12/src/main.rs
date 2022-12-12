@@ -6,8 +6,8 @@ fn main() {
     let res = shortest_path(&map);
     println!("Summary: {}", res);
     //part 2
-    //let res = shortest_path2(&map);
-    //println!("Summary2: {}", res);
+    let res = shortest_path2(&map);
+    println!("Summary2: {}", res);
 }
 fn parse(input: &str) -> Vec<Vec<u8>> {
     input
@@ -17,7 +17,39 @@ fn parse(input: &str) -> Vec<Vec<u8>> {
 }
 fn shortest_path(map: &[Vec<u8>]) -> usize {
     let mut map2 = map.to_vec();
-    shortest_path_iter(&mut map2)
+    let (end_x, end_y) = map
+        .iter()
+        .enumerate()
+        .flat_map(|(y, l)| l.iter().enumerate().map(move |(x, c)| (x, y, *c as u8)))
+        .find(|(_, _, c)| *c == b'E')
+        .map(|(x, y, _)| (x, y))
+        .expect("no end");
+    let (start_x, start_y) = map
+        .iter()
+        .enumerate()
+        .flat_map(|(y, l)| l.iter().enumerate().map(move |(x, c)| (x, y, *c as u8)))
+        .find(|(_, _, c)| *c == b'S')
+        .map(|(x, y, _)| (x, y))
+        .expect("no start");
+    shortest_path_iter(&mut map2, start_x, start_y, end_x, end_y)
+}
+fn shortest_path2(map: &[Vec<u8>]) -> usize {
+    let mut map2 = map.to_vec();
+    let (end_x, end_y) = map
+        .iter()
+        .enumerate()
+        .flat_map(|(y, l)| l.iter().enumerate().map(move |(x, c)| (x, y, *c as u8)))
+        .find(|(_, _, c)| *c == b'E')
+        .map(|(x, y, _)| (x, y))
+        .expect("no end");
+    map.iter()
+        .enumerate()
+        .flat_map(|(y, l)| l.iter().enumerate().map(move |(x, c)| (x, y, *c as u8)))
+        .filter(|(_, _, c)| *c == b'a')
+        .map(|(x, y, _)| shortest_path_iter(&mut map2, x, y, end_x, end_y))
+        .min()
+        .expect("no min")
+    //shortest_path_iter(&mut map2)
 }
 #[derive(Eq, PartialEq)]
 struct Pos {
@@ -37,28 +69,20 @@ impl PartialOrd for Pos {
     }
 }
 
-fn shortest_path_iter(map: &mut [Vec<u8>]) -> usize {
-    let (end_x, end_y) = map
-        .iter()
-        .enumerate()
-        .flat_map(|(y, l)| l.iter().enumerate().map(move |(x, c)| (x, y, *c as u8)))
-        .find(|(_, _, c)| *c == b'E')
-        .map(|(x, y, _)| (x, y))
-        .expect("no end");
-    let (start_x, start_y) = map
-        .iter()
-        .enumerate()
-        .flat_map(|(y, l)| l.iter().enumerate().map(move |(x, c)| (x, y, *c as u8)))
-        .find(|(_, _, c)| *c == b'S')
-        .map(|(x, y, _)| (x, y))
-        .expect("no end");
+fn shortest_path_iter(
+    map: &mut [Vec<u8>],
+    start_x: usize,
+    start_y: usize,
+    end_x: usize,
+    end_y: usize,
+) -> usize {
     let mut next: BinaryHeap<Pos> = BinaryHeap::new();
     let mut minmap = vec![vec![usize::MAX; map[0].len()]; map.len()];
     let map_end_x = map[0].len() - 1;
     let map_end_y = map.len() - 1;
 
-    println!("E is at {end_x} {end_y}");
-    println!("S is at {start_x} {start_y}");
+    //println!("E is at {end_x} {end_y}");
+    //println!("S is at {start_x} {start_y}");
     next.push(Pos {
         x: start_x,
         y: start_y,
@@ -72,6 +96,7 @@ fn shortest_path_iter(map: &mut [Vec<u8>]) -> usize {
             continue;
         }
         if x == end_x && y == end_y {
+            /*
             println!("FOUND at {x} {y}: {total}");
             minmap.iter().for_each(|l| {
                 l.iter().for_each(|c| {
@@ -83,6 +108,7 @@ fn shortest_path_iter(map: &mut [Vec<u8>]) -> usize {
                 });
                 println!();
             });
+            */
             return total;
         }
         minmap[y][x] = total;
@@ -118,7 +144,7 @@ fn shortest_path_iter(map: &mut [Vec<u8>]) -> usize {
             });
         }
     }
-    0
+    usize::MAX
 }
 
 #[test]
@@ -128,6 +154,6 @@ fn test() {
     let res = shortest_path(&map);
     assert_eq!(res, 31);
     //part 2
-    // let res = shortest_path2(&map);
-    // assert_eq!(res, 42);
+    let res = shortest_path2(&map);
+    assert_eq!(res, 29);
 }
