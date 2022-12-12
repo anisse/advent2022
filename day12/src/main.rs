@@ -31,7 +31,9 @@ fn shortest_path(map: &[Vec<u8>]) -> usize {
         .find(|(_, _, c)| *c == b'S')
         .map(|(x, y, _)| (x, y))
         .expect("no start");
-    shortest_path_iter(&mut map2, start_x, start_y, end_x, end_y)
+    map2[start_y][start_x] = b'a';
+    map2[end_y][end_x] = b'z';
+    shortest_path_iter(&map2, start_x, start_y, end_x, end_y)
 }
 fn shortest_path2(map: &[Vec<u8>]) -> usize {
     let mut map2 = map.to_vec();
@@ -42,11 +44,12 @@ fn shortest_path2(map: &[Vec<u8>]) -> usize {
         .find(|(_, _, c)| *c == b'E')
         .map(|(x, y, _)| (x, y))
         .expect("no end");
+    map2[end_y][end_x] = b'z';
     map.iter()
         .enumerate()
         .flat_map(|(y, l)| l.iter().enumerate().map(move |(x, c)| (x, y, *c as u8)))
         .filter(|(_, _, c)| *c == b'a')
-        .map(|(x, y, _)| shortest_path_iter(&mut map2, x, y, end_x, end_y))
+        .map(|(x, y, _)| shortest_path_iter(&map2, x, y, end_x, end_y))
         .min()
         .expect("no min")
     //shortest_path_iter(&mut map2)
@@ -70,7 +73,7 @@ impl PartialOrd for Pos {
 }
 
 fn shortest_path_iter(
-    map: &mut [Vec<u8>],
+    map: &[Vec<u8>],
     start_x: usize,
     start_y: usize,
     end_x: usize,
@@ -88,8 +91,6 @@ fn shortest_path_iter(
         y: start_y,
         total: 0,
     });
-    map[start_y][start_x] = b'a';
-    map[end_y][end_x] = b'z';
     while let Some(Pos { x, y, total }) = next.pop() {
         //println!("Exploring {x} {y} : \"{} path={total}", map[y][x] as char);
         if total >= minmap[y][x] {
