@@ -52,7 +52,6 @@ fn shortest_path2(map: &[Vec<u8>]) -> usize {
         .map(|(x, y, _)| shortest_path_iter(&map2, x, y, end_x, end_y))
         .min()
         .expect("no min")
-    //shortest_path_iter(&mut map2)
 }
 #[derive(Eq, PartialEq)]
 struct Pos {
@@ -62,7 +61,6 @@ struct Pos {
 }
 impl Ord for Pos {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        // Hello Manhattan
         other.total.cmp(&self.total)
     }
 }
@@ -84,8 +82,6 @@ fn shortest_path_iter(
     let map_end_x = map[0].len() - 1;
     let map_end_y = map.len() - 1;
 
-    //println!("E is at {end_x} {end_y}");
-    //println!("S is at {start_x} {start_y}");
     next.push(Pos {
         x: start_x,
         y: start_y,
@@ -97,19 +93,6 @@ fn shortest_path_iter(
             continue;
         }
         if x == end_x && y == end_y {
-            /*
-            println!("FOUND at {x} {y}: {total}");
-            minmap.iter().for_each(|l| {
-                l.iter().for_each(|c| {
-                    if *c == usize::MAX {
-                        print!("M");
-                    } else {
-                        print!("{}", c % 10);
-                    }
-                });
-                println!();
-            });
-            */
             return total;
         }
         minmap[y][x] = total;
