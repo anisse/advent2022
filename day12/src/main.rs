@@ -128,13 +128,7 @@ fn shortest_path_iter(
                 map[y2][x2] as i16 - map[y][x] as i16
             );
             */
-            if map[y][x] != b'S'
-                && map[y2][x2] != b'E'
-                && (map[y2][x2] as i16 - map[y][x] as i16) > 1
-            {
-                continue;
-            }
-            if map[y][x] != b'z' && map[y2][x2] == b'E' {
+            if (map[y2][x2] as i16 - map[y][x] as i16) > 1 {
                 continue;
             }
             //println!("OK");
