@@ -4,10 +4,10 @@ fn main() {
     let map = parse(include_str!("../input.txt"));
     //part 1
     let res = shortest_path(&map);
-    println!("Summary: {}", res);
+    println!("Shortest path from start: {}", res);
     //part 2
     let res = shortest_path2(&map);
-    println!("Summary2: {}", res);
+    println!("Shortest path from any a: {}", res);
 }
 fn parse(input: &str) -> Vec<Vec<u8>> {
     input
