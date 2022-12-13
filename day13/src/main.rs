@@ -5,10 +5,10 @@ fn main() {
     let pairs = parse(include_str!("../input.txt"));
     //part 1
     let res = count_right_order(&pairs);
-    println!("Summary: {}", res);
+    println!("Packets pair in the right order: {}", res);
     //part 2
     let res = order_all(&pairs);
-    println!("Summary2: {}", res);
+    println!("Product of indices of market packets after sort: {}", res);
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -65,13 +65,15 @@ impl Packet {
         let mut s_start = rs.start;
         let mut o_start = ro.start;
         loop {
-            println!("left is {s_start} of {rs:?}, right {o_start} of {ro:?}");
+            //println!("left is {s_start} of {rs:?}, right {o_start} of {ro:?}");
             // Compare both first just in case one is an empty list
             let pair = (s_start.cmp(&rs.end), o_start.cmp(&ro.end));
+            /*
             println!(
                 "Ends are : {pair:?}: {} vs {} and {} vs {}",
                 s_start, rs.end, o_start, ro.end
             );
+            */
             match pair {
                 // continue
                 (std::cmp::Ordering::Less, std::cmp::Ordering::Less) => {
@@ -197,6 +199,7 @@ fn count_right_order(pairs: &[Pair]) -> usize {
     pairs
         .iter()
         .enumerate()
+        /*
         .filter(|(i, pair)| {
             println!(
                 "{i}: {} vs {}: {:?}",
@@ -206,6 +209,7 @@ fn count_right_order(pairs: &[Pair]) -> usize {
             );
             true
         })
+        */
         .filter(|(_, pair)| pair[0] < pair[1])
         .map(|(i, _)| i + 1)
         .sum()
