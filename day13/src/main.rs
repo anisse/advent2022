@@ -1,3 +1,4 @@
+use crate::DataType::*;
 use std::{cmp::Ord, ops::Range};
 
 fn main() {
@@ -33,64 +34,94 @@ impl Packet {
     fn cmp_slice(&self, other: &Self, rs: Range<usize>, ro: Range<usize>) -> std::cmp::Ordering {
         let left = first(&self.0[rs.start..]);
         let right = first(&other.0[ro.start..]);
-        println!("Comparing {left:?} ({rs:?}) with {right:?} ({ro:?})");
-        match (left, right) {
-            (Data::List { end }, Data::List { end: endo }) => {
-                self.cmp_slice(other, (rs.start + 1)..(end), (ro.start + 1)..endo)
+        //println!("Comparing {left:?} ({rs:?}) with {right:?} ({ro:?})");
+        match (left.typ, right.typ) {
+            (List, List) => self.cmp_lists(
+                other,
+                (rs.start + 1)..(rs.start + left.len),
+                (ro.start + 1)..(ro.start + right.len),
+            ),
+            (List, Int(_)) => {
+                //let new_p = Packet(format!("{value}").chars().map(|c| c as u8).collect());
+                self.cmp_lists(
+                    other,
+                    (rs.start + 1)..(rs.start + left.len),
+                    ro.start..(ro.start + right.len),
+                )
             }
-            (Data::List { end }, Data::Int { value, .. }) => {
-                let new_p = Packet(format!("{value}").chars().map(|c| c as u8).collect());
-                self.cmp_slice(&new_p, rs.start..end, 0..new_p.0.len())
+            (Int(_), List) => {
+                //let new_p = Packet(format!("{value}").chars().map(|c| c as u8).collect());
+                //new_p.cmp_lists(other, 0..new_p.0.len(), ro.start..(ro.start + right.len))
+                self.cmp_lists(
+                    other,
+                    rs.start..(rs.start + left.len),
+                    (ro.start + 1)..(ro.start + right.len),
+                )
             }
-            (Data::Int { value, .. }, Data::List { end: endo }) => {
-                let new_p = Packet(format!("{value}").chars().map(|c| c as u8).collect());
-                new_p.cmp_slice(other, 0..new_p.0.len(), rs.start..endo)
-            }
-            (
-                Data::Int { value, end },
-                Data::Int {
-                    value: valueo,
-                    end: endo,
-                },
-            ) => {
-                let c = value.cmp(&valueo);
-                match c {
-                    std::cmp::Ordering::Less => c,
-                    std::cmp::Ordering::Greater => c,
-                    std::cmp::Ordering::Equal => match (end.cmp(&rs.end), endo.cmp(&ro.end)) {
-                        (std::cmp::Ordering::Less, std::cmp::Ordering::Less) => self.cmp_slice(
-                            other,
-                            (rs.start + end + 1)..rs.end,
-                            (ro.start + endo + 1)..ro.end,
-                        ),
-                        (std::cmp::Ordering::Less, std::cmp::Ordering::Equal) => {
-                            std::cmp::Ordering::Less
-                        }
-                        (std::cmp::Ordering::Less, std::cmp::Ordering::Greater) => {
-                            panic!("endo greater than ro.end")
-                        }
-                        (std::cmp::Ordering::Equal, std::cmp::Ordering::Less) => {
-                            std::cmp::Ordering::Greater
-                        }
-                        (std::cmp::Ordering::Equal, std::cmp::Ordering::Equal) => {
-                            std::cmp::Ordering::Equal
-                        }
-                        (std::cmp::Ordering::Equal, std::cmp::Ordering::Greater) => {
-                            panic!("endo greater than ro.end")
-                        }
-                        (std::cmp::Ordering::Greater, std::cmp::Ordering::Less) => {
-                            panic!("end greater than rs.end")
-                        }
-                        (std::cmp::Ordering::Greater, std::cmp::Ordering::Equal) => {
-                            panic!("end greater than rs.end")
-                        }
-                        (std::cmp::Ordering::Greater, std::cmp::Ordering::Greater) => {
-                            panic!("endo and end greater")
-                        }
-                    },
+            (Int(value), Int(valueo)) => value.cmp(&valueo),
+        }
+    }
+    fn cmp_lists(&self, other: &Self, rs: Range<usize>, ro: Range<usize>) -> std::cmp::Ordering {
+        let mut s_start = rs.start;
+        let mut o_start = ro.start;
+        loop {
+            println!("left is {s_start} of {rs:?}, right {o_start} of {ro:?}");
+            // Compare both first just in case one is an empty list
+            let pair = (s_start.cmp(&rs.end), o_start.cmp(&ro.end));
+            println!(
+                "Ends are : {pair:?}: {} vs {} and {} vs {}",
+                s_start, rs.end, o_start, ro.end
+            );
+            match pair {
+                // continue
+                (std::cmp::Ordering::Less, std::cmp::Ordering::Less) => {
+                    // nothing to do
+                }
+                (std::cmp::Ordering::Less, std::cmp::Ordering::Equal) => {
+                    return std::cmp::Ordering::Greater
+                }
+                (std::cmp::Ordering::Less, std::cmp::Ordering::Greater) => {
+                    return std::cmp::Ordering::Greater
+                }
+                (std::cmp::Ordering::Equal, std::cmp::Ordering::Less) => {
+                    return std::cmp::Ordering::Less
+                }
+                (std::cmp::Ordering::Equal, std::cmp::Ordering::Equal) => {
+                    return std::cmp::Ordering::Equal
+                }
+                (std::cmp::Ordering::Equal, std::cmp::Ordering::Greater) => {
+                    panic!("right end greater than ro.end")
+                }
+                (std::cmp::Ordering::Greater, std::cmp::Ordering::Less) => {
+                    return std::cmp::Ordering::Less
+                }
+                (std::cmp::Ordering::Greater, std::cmp::Ordering::Equal) => {
+                    panic!("left end greater than rs.end")
+                }
+                (std::cmp::Ordering::Greater, std::cmp::Ordering::Greater) => {
+                    return std::cmp::Ordering::Equal
                 }
             }
+            let left = first(&self.0[s_start..rs.end]);
+            let right = first(&other.0[o_start..ro.end]);
+            let cmp = self.cmp_slice(other, s_start..left.len, o_start..right.len);
+            match cmp {
+                std::cmp::Ordering::Less => return cmp,
+                std::cmp::Ordering::Greater => return cmp,
+                std::cmp::Ordering::Equal => {}
+            }
+            s_start += left.len
+                + match left.typ {
+                    List => 2,   // list ended, add '],' length
+                    Int(_) => 1, // int ended, add ',' length
+                };
+            o_start += right.len
+                + match right.typ {
+                    List => 2,   // list ended, add '],' length
+                    Int(_) => 1, // int ended, add ',' length
+                };
         }
+        //std::cmp::Ordering::Equal
     }
 }
 
@@ -101,25 +132,31 @@ impl PartialOrd for Packet {
 }
 
 #[derive(Debug)]
-enum Data {
-    List { end: usize },
-    Int { value: u16, end: usize },
+enum DataType {
+    List,
+    Int(usize),
+}
+#[derive(Debug)]
+struct Data {
+    len: usize,
+    typ: DataType,
 }
 
 fn first(p: &[u8]) -> Data {
     let int = p.iter().take_while(|c| (b'0'..=b'9').contains(c)).count();
     if int > 0 {
         assert!(int == p.len() || p[int] == b',' || p[int] == b']');
-        return Data::Int {
-            value: p[..int]
+        return Data {
+            typ: Int(p[..int]
                 .iter()
                 .map(|c| *c as char)
                 .collect::<String>()
                 .parse()
-                .expect("not int"),
-            end: int,
+                .expect("not int")),
+            len: int,
         };
     }
+    //println!("not int next is {}", p[0] as char);
     assert_eq!(p[0], b'[');
     let end = p[1..]
         .iter()
@@ -132,12 +169,16 @@ fn first(p: &[u8]) -> Data {
             Some(*state)
         })
         .take_while(|count| *count > 0)
-        .count();
+        .count()
+        + 1;
     /*
         .last()
         .expect("no list end");
     */
-    Data::List { end }
+    Data {
+        len: end,
+        typ: List,
+    }
 }
 
 fn parse(input: &str) -> Vec<Pair> {
@@ -155,12 +196,19 @@ fn parse(input: &str) -> Vec<Pair> {
 fn count_right_order(pairs: &[Pair]) -> usize {
     pairs
         .iter()
-        .filter(|pair| {
-            println!("{} vs {}", pair[0], pair[1]);
+        .enumerate()
+        .filter(|(i, pair)| {
+            println!(
+                "{i}: {} vs {}: {:?}",
+                pair[0],
+                pair[1],
+                pair[0].cmp(&pair[1])
+            );
             true
         })
-        .filter(|pair| pair[0] < pair[1])
-        .count()
+        .filter(|(_, pair)| pair[0] < pair[1])
+        .map(|(i, _)| i + 1)
+        .sum()
 }
 
 #[test]
