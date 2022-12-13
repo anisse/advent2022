@@ -7,11 +7,11 @@ fn main() {
     let res = count_right_order(&pairs);
     println!("Summary: {}", res);
     //part 2
-    //let res = operation2(&pairs);
-    //println!("Summary2: {}", res);
+    let res = order_all(&pairs);
+    println!("Summary2: {}", res);
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 struct Packet(Vec<u8>);
 type Pair = [Packet; 2];
 
@@ -211,6 +211,24 @@ fn count_right_order(pairs: &[Pair]) -> usize {
         .sum()
 }
 
+fn order_all(pairs: &[Pair]) -> usize {
+    let m1 = Packet("[[2]]".chars().map(|c| c as u8).collect());
+    let m2 = Packet("[[6]]".chars().map(|c| c as u8).collect());
+    let mut packets: Vec<Packet> = vec![[m1.clone(), m2.clone()]]
+        .iter()
+        .chain(pairs.iter())
+        .flatten()
+        .cloned()
+        .collect();
+    packets.sort();
+    packets
+        .iter()
+        .enumerate()
+        .filter(|(_, p)| **p == m1 || **p == m2)
+        .map(|(i, _)| i + 1)
+        .product()
+}
+
 #[test]
 fn test() {
     let pairs = parse(include_str!("../sample.txt"));
@@ -218,6 +236,6 @@ fn test() {
     let res = count_right_order(&pairs);
     assert_eq!(res, 13);
     //part 2
-    // let res = operation2(&pairs);
-    // assert_eq!(res, 42);
+    let res = order_all(&pairs);
+    assert_eq!(res, 140);
 }
