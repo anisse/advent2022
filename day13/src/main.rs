@@ -13,7 +13,7 @@ fn main() {
     println!("Product of indices of market packets after sort: {}", res);
 }
 
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug)]
 struct Packet(Vec<u8>);
 type Pair = [Packet; 2];
 
@@ -194,17 +194,14 @@ fn count_right_order(pairs: &[Pair]) -> usize {
 fn order_all(pairs: &[Pair]) -> usize {
     let m1 = Packet("[[2]]".chars().map(|c| c as u8).collect());
     let m2 = Packet("[[6]]".chars().map(|c| c as u8).collect());
-    let mut packets: Vec<Packet> = vec![[m1.clone(), m2.clone()]]
-        .iter()
-        .chain(pairs.iter())
-        .flatten()
-        .cloned()
-        .collect();
+    let mut packets: Vec<&Packet> = pairs.iter().flatten().collect();
+    packets.push(&m1);
+    packets.push(&m2);
     packets.sort();
     packets
         .iter()
         .enumerate()
-        .filter(|(_, p)| **p == m1 || **p == m2)
+        .filter(|(_, p)| **p == &m1 || **p == &m2)
         .map(|(i, _)| i + 1)
         .product()
 }
