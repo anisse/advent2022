@@ -41,23 +41,16 @@ impl Packet {
                 (rs.start + 1)..(rs.start + left.len),
                 (ro.start + 1)..(ro.start + right.len),
             ),
-            (List, Int(_)) => {
-                //let new_p = Packet(format!("{value}").chars().map(|c| c as u8).collect());
-                self.cmp_lists(
-                    other,
-                    (rs.start + 1)..(rs.start + left.len),
-                    ro.start..(ro.start + right.len),
-                )
-            }
-            (Int(_), List) => {
-                //let new_p = Packet(format!("{value}").chars().map(|c| c as u8).collect());
-                //new_p.cmp_lists(other, 0..new_p.0.len(), ro.start..(ro.start + right.len))
-                self.cmp_lists(
-                    other,
-                    rs.start..(rs.start + left.len),
-                    (ro.start + 1)..(ro.start + right.len),
-                )
-            }
+            (List, Int(_)) => self.cmp_lists(
+                other,
+                (rs.start + 1)..(rs.start + left.len),
+                ro.start..(ro.start + right.len),
+            ),
+            (Int(_), List) => self.cmp_lists(
+                other,
+                rs.start..(rs.start + left.len),
+                (ro.start + 1)..(ro.start + right.len),
+            ),
             (Int(value), Int(valueo)) => value.cmp(&valueo),
         }
     }
@@ -66,7 +59,7 @@ impl Packet {
         let mut o_start = ro.start;
         loop {
             //println!("left is {s_start} of {rs:?}, right {o_start} of {ro:?}");
-            // Compare both first just in case one is an empty list
+            /* Compare both first just in case one is an empty list */
             let pair = (s_start.cmp(&rs.end), o_start.cmp(&ro.end));
             /*
             println!(
@@ -160,7 +153,7 @@ fn first(p: &[u8]) -> Data {
     }
     //println!("not int next is {}", p[0] as char);
     assert_eq!(p[0], b'[');
-    let end = p[1..]
+    let len = p[1..]
         .iter()
         .scan(1, |state, c| {
             match c {
@@ -173,14 +166,7 @@ fn first(p: &[u8]) -> Data {
         .take_while(|count| *count > 0)
         .count()
         + 1;
-    /*
-        .last()
-        .expect("no list end");
-    */
-    Data {
-        len: end,
-        typ: List,
-    }
+    Data { len, typ: List }
 }
 
 fn parse(input: &str) -> Vec<Pair> {
