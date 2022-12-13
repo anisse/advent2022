@@ -1,4 +1,6 @@
 use crate::DataType::*;
+use std::cmp::Ordering;
+use std::cmp::Ordering::*;
 use std::{cmp::Ord, ops::Range};
 
 fn main() {
@@ -25,13 +27,13 @@ impl std::fmt::Display for Packet {
     }
 }
 impl Ord for Packet {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         self.cmp_slice(other, 0..self.0.len(), 0..other.0.len())
     }
 }
 
 impl Packet {
-    fn cmp_slice(&self, other: &Self, rs: Range<usize>, ro: Range<usize>) -> std::cmp::Ordering {
+    fn cmp_slice(&self, other: &Self, rs: Range<usize>, ro: Range<usize>) -> Ordering {
         let left = first(&self.0[rs.start..]);
         let right = first(&other.0[ro.start..]);
         //println!("Comparing {left:?} ({rs:?}) with {right:?} ({ro:?})");
@@ -54,7 +56,7 @@ impl Packet {
             (Int(value), Int(valueo)) => value.cmp(&valueo),
         }
     }
-    fn cmp_lists(&self, other: &Self, rs: Range<usize>, ro: Range<usize>) -> std::cmp::Ordering {
+    fn cmp_lists(&self, other: &Self, rs: Range<usize>, ro: Range<usize>) -> Ordering {
         let mut s_start = rs.start;
         let mut o_start = ro.start;
         loop {
@@ -69,41 +71,29 @@ impl Packet {
             */
             match pair {
                 // continue
-                (std::cmp::Ordering::Less, std::cmp::Ordering::Less) => {
+                (Less, Less) => {
                     // nothing to do
                 }
-                (std::cmp::Ordering::Less, std::cmp::Ordering::Equal) => {
-                    return std::cmp::Ordering::Greater
-                }
-                (std::cmp::Ordering::Less, std::cmp::Ordering::Greater) => {
-                    return std::cmp::Ordering::Greater
-                }
-                (std::cmp::Ordering::Equal, std::cmp::Ordering::Less) => {
-                    return std::cmp::Ordering::Less
-                }
-                (std::cmp::Ordering::Equal, std::cmp::Ordering::Equal) => {
-                    return std::cmp::Ordering::Equal
-                }
-                (std::cmp::Ordering::Equal, std::cmp::Ordering::Greater) => {
+                (Less, Equal) => return Greater,
+                (Less, Greater) => return Greater,
+                (Equal, Less) => return Less,
+                (Equal, Equal) => return Equal,
+                (Equal, Greater) => {
                     panic!("right end greater than ro.end")
                 }
-                (std::cmp::Ordering::Greater, std::cmp::Ordering::Less) => {
-                    return std::cmp::Ordering::Less
-                }
-                (std::cmp::Ordering::Greater, std::cmp::Ordering::Equal) => {
+                (Greater, Less) => return Less,
+                (Greater, Equal) => {
                     panic!("left end greater than rs.end")
                 }
-                (std::cmp::Ordering::Greater, std::cmp::Ordering::Greater) => {
-                    return std::cmp::Ordering::Equal
-                }
+                (Greater, Greater) => return Equal,
             }
             let left = first(&self.0[s_start..rs.end]);
             let right = first(&other.0[o_start..ro.end]);
             let cmp = self.cmp_slice(other, s_start..left.len, o_start..right.len);
             match cmp {
-                std::cmp::Ordering::Less => return cmp,
-                std::cmp::Ordering::Greater => return cmp,
-                std::cmp::Ordering::Equal => {}
+                Less => return cmp,
+                Greater => return cmp,
+                Equal => {}
             }
             s_start += left.len
                 + match left.typ {
@@ -116,12 +106,12 @@ impl Packet {
                     Int(_) => 1, // int ended, add ',' length
                 };
         }
-        //std::cmp::Ordering::Equal
+        //Equal
     }
 }
 
 impl PartialOrd for Packet {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
