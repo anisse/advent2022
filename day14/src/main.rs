@@ -8,8 +8,8 @@ fn main() {
     let res = max_caught_sand(&rocklines);
     println!("Summary: {}", res);
     //part 2
-    //let res = max_caught_sand2(&rocklines);
-    //println!("Summary2: {}", res);
+    let res = max_caught_sand_inf(&rocklines);
+    println!("Summary2: {}", res);
 }
 
 #[derive(Debug, Clone)]
@@ -46,6 +46,21 @@ fn max_caught_sand(rocklines: &[Line]) -> usize {
             return count;
         }
         count += 1
+    }
+}
+fn max_caught_sand_inf(rocklines: &[Line]) -> usize {
+    let mut cave = build_map_infinite(rocklines);
+    println!("{}", cave);
+    let mut count = 0;
+    loop {
+        add_grain(&mut cave);
+        if count % 1000000 == 0 {
+            println!("Now at grain {count}");
+        }
+        count += 1;
+        if let Sand = cave.grid[cave.start.y as usize][cave.start.x as usize] {
+            return count;
+        }
     }
 }
 
@@ -155,7 +170,11 @@ fn build_map(rocklines: &[Line]) -> Cave {
     //println!("max: {max_x}x{max_y}, min: {min_x}x{min_y}");
     let width = (max_x - min_x) as usize + 1;
     let height = (max_y - min_y) as usize + 1;
-    println!("making grid of {width}x{height}");
+    println!(
+        "making grid of {width}x{height}, start is at {}x{}",
+        500 - min_x,
+        0 - min_y
+    );
     let mut grid = vec![vec![Empty; width]; height];
     rocklines.iter().for_each(|l| {
         l.windows(2).for_each(|line| {
@@ -176,6 +195,64 @@ fn build_map(rocklines: &[Line]) -> Cave {
             }
         })
     });
+
+    Cave {
+        width,
+        height,
+        grid,
+        start: Pos {
+            x: 500 - min_x,
+            y: 0 - min_y,
+        },
+    }
+}
+
+fn build_map_infinite(rocklines: &[Line]) -> Cave {
+    let (min_x, _, min_y, max_y) = rocklines
+        .iter()
+        .flatten()
+        .chain([Pos { x: 500, y: 0 }].iter())
+        .fold((i16::MAX, 0, i16::MAX, 0), |acc, p| {
+            (
+                min(acc.0, p.x),
+                max(acc.1, p.x),
+                min(acc.2, p.y),
+                max(acc.3, p.y),
+            )
+        });
+    //println!("max: {max_x}x{max_y}, min: {min_x}x{min_y}");
+    let height = (max_y - min_y) as usize + 1 + 2;
+    let width = height * 2;
+    let min_x = 500 - height as i16;
+    println!(
+        "making grid of {width}x{height} mins: {min_x}x{min_y} start is at {}x{}",
+        500 - min_x,
+        0 - min_y
+    );
+    let mut grid = vec![vec![Empty; width]; height];
+    rocklines.iter().for_each(|l| {
+        l.windows(2).for_each(|line| {
+            //println!("Line {line:?}");
+            if line[0].x == line[1].x {
+                (min(line[0].y, line[1].y)..=max(line[0].y, line[1].y))
+                    .map(|y| ((line[0].x - min_x) as usize, (y - min_y) as usize))
+                    .for_each(|(x, y)| {
+                        grid[y][x] = Rock;
+                    });
+            }
+            if line[0].y == line[1].y {
+                (min(line[0].x, line[1].x)..=max(line[0].x, line[1].x))
+                    .map(|x| ((x - min_x) as usize, (line[0].y - min_y) as usize))
+                    .for_each(|(x, y)| {
+                        grid[y][x] = Rock;
+                    });
+            }
+        })
+    });
+    // Now bottom
+    for i in 0..width {
+        grid[height - 1][i] = Rock;
+    }
 
     Cave {
         width,
@@ -211,6 +288,8 @@ fn test() {
     let res = max_caught_sand(&rocklines);
     assert_eq!(res, 24);
     //part 2
-    // let res = max_caught_sand2(&rocklines);
-    // assert_eq!(res, 42);
+    let cave = build_map(&rocklines);
+    println!("{}", cave);
+    let res = max_caught_sand_inf(&rocklines);
+    assert_eq!(res, 93);
 }
