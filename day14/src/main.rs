@@ -12,10 +12,10 @@ fn main() {
     //println!("Summary2: {}", res);
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Pos {
-    x: u16,
-    y: u16,
+    x: i16,
+    y: i16,
 }
 
 type Line = Vec<Pos>;
@@ -39,7 +39,52 @@ fn parse(input: &str) -> Vec<Line> {
 
 fn max_caught_sand(rocklines: &[Line]) -> usize {
     let mut cave = build_map(rocklines);
-    todo!()
+    //println!("{}", cave);
+    let mut count = 0;
+    loop {
+        if add_grain(&mut cave) {
+            return count;
+        }
+        count += 1
+    }
+}
+
+fn add_grain(cave: &mut Cave) -> bool {
+    let mut sand_pos = cave.start.clone();
+
+    'outer: loop {
+        for new_pos in [
+            Pos {
+                x: sand_pos.x,
+                y: sand_pos.y + 1,
+            },
+            Pos {
+                x: sand_pos.x - 1,
+                y: sand_pos.y + 1,
+            },
+            Pos {
+                x: sand_pos.x + 1,
+                y: sand_pos.y + 1,
+            },
+        ]
+        .iter()
+        {
+            // first check validity
+            if new_pos.x < 0 || new_pos.x >= cave.width as i16 || new_pos.y >= cave.height as i16 {
+                //overflow
+                return true;
+            }
+            match cave.grid[new_pos.y as usize][new_pos.x as usize] {
+                Empty => {
+                    sand_pos = new_pos.clone();
+                    continue 'outer;
+                }
+                Rock | Sand => continue,
+            }
+        }
+        cave.grid[sand_pos.y as usize][sand_pos.x as usize] = Sand;
+        return false;
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -99,7 +144,7 @@ fn build_map(rocklines: &[Line]) -> Cave {
         .iter()
         .flatten()
         .chain([Pos { x: 500, y: 0 }].iter())
-        .fold((u16::MAX, 0, u16::MAX, 0), |acc, p| {
+        .fold((i16::MAX, 0, i16::MAX, 0), |acc, p| {
             (
                 min(acc.0, p.x),
                 max(acc.1, p.x),
@@ -114,6 +159,7 @@ fn build_map(rocklines: &[Line]) -> Cave {
     let mut grid = vec![vec![Empty; width]; height];
     rocklines.iter().for_each(|l| {
         l.windows(2).for_each(|line| {
+            //println!("Line {line:?}");
             if line[0].x == line[1].x {
                 (min(line[0].y, line[1].y)..=max(line[0].y, line[1].y))
                     .map(|y| ((line[0].x - min_x) as usize, (y - min_y) as usize))
