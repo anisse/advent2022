@@ -6,10 +6,10 @@ fn main() {
     let rocklines = parse(include_str!("../input.txt"));
     //part 1
     let res = max_caught_sand(&rocklines);
-    println!("Summary: {}", res);
+    println!("Grains of sand to go out of map: {}", res);
     //part 2
     let res = max_caught_sand_inf(&rocklines);
-    println!("Summary2: {}", res);
+    println!("Grains of sand to reach start of infinite map: {}", res);
 }
 
 #[derive(Debug, Clone)]
@@ -50,13 +50,10 @@ fn max_caught_sand(rocklines: &[Line]) -> usize {
 }
 fn max_caught_sand_inf(rocklines: &[Line]) -> usize {
     let mut cave = build_map_infinite(rocklines);
-    println!("{}", cave);
+    //println!("{}", cave);
     let mut count = 0;
     loop {
         add_grain(&mut cave);
-        if count % 1000000 == 0 {
-            println!("Now at grain {count}");
-        }
         count += 1;
         if let Sand = cave.grid[cave.start.y as usize][cave.start.x as usize] {
             return count;
@@ -170,11 +167,13 @@ fn build_map(rocklines: &[Line]) -> Cave {
     //println!("max: {max_x}x{max_y}, min: {min_x}x{min_y}");
     let width = (max_x - min_x) as usize + 1;
     let height = (max_y - min_y) as usize + 1;
+    /*
     println!(
         "making grid of {width}x{height}, start is at {}x{}",
         500 - min_x,
         0 - min_y
     );
+    */
     let mut grid = vec![vec![Empty; width]; height];
     rocklines.iter().for_each(|l| {
         l.windows(2).for_each(|line| {
@@ -208,7 +207,7 @@ fn build_map(rocklines: &[Line]) -> Cave {
 }
 
 fn build_map_infinite(rocklines: &[Line]) -> Cave {
-    let (min_x, _, min_y, max_y) = rocklines
+    let (_, _, min_y, max_y) = rocklines
         .iter()
         .flatten()
         .chain([Pos { x: 500, y: 0 }].iter())
@@ -224,11 +223,13 @@ fn build_map_infinite(rocklines: &[Line]) -> Cave {
     let height = (max_y - min_y) as usize + 1 + 2;
     let width = height * 2;
     let min_x = 500 - height as i16;
+    /*
     println!(
         "making grid of {width}x{height} mins: {min_x}x{min_y} start is at {}x{}",
         500 - min_x,
         0 - min_y
     );
+    */
     let mut grid = vec![vec![Empty; width]; height];
     rocklines.iter().for_each(|l| {
         l.windows(2).for_each(|line| {
