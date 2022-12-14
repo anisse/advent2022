@@ -134,23 +134,6 @@ impl std::fmt::Display for Cave {
     }
 }
 
-/*
-fn it(line: &[Pos]) -> dyn Iterator<Item = (u16, u16)> {
-    match (line[0].x == line[1].x, line[0].y == line[1].y) {
-        (true, true) => unreachable!(),
-        (true, false) => {
-            return (line[0].y..=line[1].y).map(|y| (line[0].x, y))
-                as dyn Iterator<Item = (u16, u16)>
-        }
-        (false, true) => {
-            return (line[0].x..=line[1].x).map(|x| (x, line[0].y))
-                as dyn Iterator<Item = (u16, u16)>
-        }
-        (false, false) => unreachable!(),
-    }
-}
-*/
-
 fn build_map(rocklines: &[Line]) -> Cave {
     let (min_x, max_x, min_y, max_y) = rocklines
         .iter()
