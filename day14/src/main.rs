@@ -189,61 +189,18 @@ fn build_map(rocklines: &[Line]) -> Cave {
 }
 
 fn build_map_infinite(rocklines: &[Line]) -> Cave {
-    let (_, _, min_y, max_y) = rocklines
-        .iter()
-        .flatten()
-        .chain([Pos { x: 500, y: 0 }].iter())
-        .fold((i16::MAX, 0, i16::MAX, 0), |acc, p| {
-            (
-                min(acc.0, p.x),
-                max(acc.1, p.x),
-                min(acc.2, p.y),
-                max(acc.3, p.y),
-            )
-        });
-    //println!("max: {max_x}x{max_y}, min: {min_x}x{min_y}");
-    let height = (max_y - min_y) as usize + 1 + 2;
-    let width = height * 2;
-    let min_x = 500 - height as i16;
-    /*
-    println!(
-        "making grid of {width}x{height} mins: {min_x}x{min_y} start is at {}x{}",
-        500 - min_x,
-        0 - min_y
-    );
-    */
-    let mut grid = vec![vec![Empty; width]; height];
-    rocklines.iter().for_each(|l| {
-        l.windows(2).for_each(|line| {
-            //println!("Line {line:?}");
-            if line[0].x == line[1].x {
-                (min(line[0].y, line[1].y)..=max(line[0].y, line[1].y))
-                    .map(|y| ((line[0].x - min_x) as usize, (y - min_y) as usize))
-                    .for_each(|(x, y)| {
-                        grid[y][x] = Rock;
-                    });
-            }
-            if line[0].y == line[1].y {
-                (min(line[0].x, line[1].x)..=max(line[0].x, line[1].x))
-                    .map(|x| ((x - min_x) as usize, (line[0].y - min_y) as usize))
-                    .for_each(|(x, y)| {
-                        grid[y][x] = Rock;
-                    });
-            }
-        })
+    let mut map = build_map(rocklines);
+    let new_width = (map.grid.len() + 2) * 2;
+    let shift = (new_width - map.grid[0].len()) / 2 - 1;
+    map.grid.iter_mut().for_each(|l| {
+        l.resize(new_width, Empty);
+        l.rotate_right(shift);
     });
-    // Now bottom
-    for i in 0..width {
-        grid[height - 1][i] = Rock;
-    }
-
-    Cave {
-        grid,
-        start: Pos {
-            x: 500 - min_x,
-            y: 0 - min_y,
-        },
-    }
+    map.start.x += shift as i16;
+    // Add end lines
+    map.grid.push(vec![Empty; new_width]);
+    map.grid.push(vec![Rock; new_width]);
+    map
 }
 
 #[test]
@@ -269,8 +226,6 @@ fn test() {
     let res = max_caught_sand(&rocklines);
     assert_eq!(res, 24);
     //part 2
-    let cave = build_map(&rocklines);
-    println!("{}", cave);
     let res = max_caught_sand_inf(&rocklines);
     assert_eq!(res, 93);
 }
