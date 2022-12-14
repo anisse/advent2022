@@ -82,7 +82,10 @@ fn add_grain(cave: &mut Cave) -> bool {
         .iter()
         {
             // first check validity
-            if new_pos.x < 0 || new_pos.x >= cave.width as i16 || new_pos.y >= cave.height as i16 {
+            if new_pos.x < 0
+                || new_pos.x >= cave.grid[0].len() as i16
+                || new_pos.y >= cave.grid.len() as i16
+            {
                 //overflow
                 return true;
             }
@@ -108,8 +111,6 @@ enum Element {
 
 #[derive(Debug)]
 struct Cave {
-    width: usize,
-    height: usize,
     grid: Vec<Vec<Element>>,
     start: Pos,
 }
@@ -179,8 +180,6 @@ fn build_map(rocklines: &[Line]) -> Cave {
     });
 
     Cave {
-        width,
-        height,
         grid,
         start: Pos {
             x: 500 - min_x,
@@ -239,8 +238,6 @@ fn build_map_infinite(rocklines: &[Line]) -> Cave {
     }
 
     Cave {
-        width,
-        height,
         grid,
         start: Pos {
             x: 500 - min_x,
