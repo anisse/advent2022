@@ -8,10 +8,10 @@ fn main() {
     let coords = parse(input!());
     //part 1
     let res = empty_pos_at(&coords, 2000000);
-    println!("Summary: {}", res);
+    println!("Number of slots with no beacon at line 2000000: {}", res);
     //part 2
     let res = empty_pos_beacon(&coords, 4000000);
-    println!("Summary2: {}", res);
+    println!("Distress signal tuning frequency: {}", res);
 }
 fn parse(input: &str) -> Vec<[Pos; 2]> {
     input
@@ -264,9 +264,11 @@ fn empty_pos_beacon(coords: &[[Pos; 2]], max_xy: i64) -> usize {
     let real_min_x = max(min_p.x, 0);
     let real_min_y = max(min_p.y, 0);
     for y in real_min_y..=real_max_y {
+        /*
         if y % 100000 == 0 {
             println!("iterating at {y}");
         }
+        */
         if line_has_empty_slots(coords, y, real_min_x, real_max_x) {
             //println!("Line {y} has empty slots");
             let line = empty_pos_line_bounded(coords, y, real_min_x, real_max_x);
@@ -285,7 +287,7 @@ fn empty_pos_beacon(coords: &[[Pos; 2]], max_xy: i64) -> usize {
                     .map(|(i, _)| i)
                     .unwrap() as i64
                     - real_min_x;
-                println!("Got {x}x{y}");
+                //println!("Got {x}x{y}");
                 return (x as usize) * 4000000 + y as usize;
             }
         }
