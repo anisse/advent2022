@@ -7,8 +7,8 @@ fn main() {
     let res = empty_pos_at(&coords, 2000000);
     println!("Summary: {}", res);
     //part 2
-    //let res = empty_pos_at2(&coords);
-    //println!("Summary2: {}", res);
+    let res = empty_pos_beacon(&coords, 4000000);
+    println!("Summary2: {}", res);
 }
 fn parse(input: &str) -> Vec<[Pos; 2]> {
     input
@@ -67,20 +67,28 @@ struct Pos {
     y: i64,
 }
 
-fn empty_pos_at(coords: &[[Pos; 2]], y: i64) -> usize {
+fn empty_pos_line(coords: &[[Pos; 2]], y: i64) -> (Vec<bool>, i64) {
     let (min_p, max_p) = map_coords(coords);
     let map_width = max_p.x - min_p.x + 1;
+    /*
     dbg!(&min_p);
     dbg!(&max_p);
     dbg!(&map_width);
+    */
     //let map_height = max_p.y - min_p.y;
     let mut line = vec![false; map_width as usize];
     coords
         .iter()
         .for_each(|sb| fill_line(&sb[0], &sb[1], y, &mut line, min_p.x));
+    (line, min_p.x)
+}
+fn empty_pos_at(coords: &[[Pos; 2]], y: i64) -> usize {
+    let (line, _) = empty_pos_line(coords, y);
+    /*
     line.iter()
         .for_each(|b| if *b { print!("#") } else { print!(".") });
     println!();
+    */
     line.iter().filter(|b| **b).count()
 }
 
@@ -146,6 +154,49 @@ fn map_coords(coords: &[[Pos; 2]]) -> (Pos, Pos) {
         )
 }
 
+fn empty_pos_line_bounded(coords: &[[Pos; 2]], y: i64, min: i64, max: i64) -> Vec<bool> {
+    let mut line = vec![false; (max - min) as usize];
+    coords
+        .iter()
+        .for_each(|sb| fill_line(&sb[0], &sb[1], y, &mut line, min));
+    line
+}
+fn empty_pos_beacon(coords: &[[Pos; 2]], max_xy: i64) -> usize {
+    let (min_p, max_p) = map_coords(coords);
+    let real_max_x = min(max_p.x, max_xy);
+    let real_max_y = min(max_p.y, max_xy);
+    let real_min_x = max(min_p.x, 0);
+    let real_min_y = max(min_p.y, 0);
+    for y in real_min_y..=real_max_y {
+        let line = empty_pos_line_bounded(coords, y, real_min_x, real_max_x);
+        let range_start = max(0 - real_min_x, 0) as usize;
+        let range = range_start..min(real_max_x as usize + 1 + range_start, line.len());
+        let count = line[range.clone()].iter().filter(|b| !**b).count();
+        println!("Line {y}: in range {range:?} (from min: {real_min_x}) count is {count}");
+        /*
+        (min_x..0).for_each(|_| print!("."));
+        range.clone().for_each(|x| print!("{}", x % 10));
+        println!();
+        line.iter()
+            .for_each(|b| if *b { print!("#") } else { print!(".") });
+        println!();
+        */
+        if count == 1 {
+            let x = line[range.clone()]
+                .iter()
+                .enumerate()
+                .find(|(_, b)| !**b)
+                .map(|(i, _)| i)
+                .unwrap() as i64
+                - real_min_x
+                - range.start as i64;
+            println!("Got {x}x{y}");
+            return (x as usize) * 4000000 + y as usize;
+        }
+    }
+    unreachable!()
+}
+
 #[test]
 fn test() {
     let coords = parse(sample!());
@@ -153,6 +204,6 @@ fn test() {
     let res = empty_pos_at(&coords, 10);
     assert_eq!(res, 26);
     //part 2
-    // let res = empty_pos_at2(&coords);
-    // assert_eq!(res, 42);
+    let res = empty_pos_beacon(&coords, 20);
+    assert_eq!(res, 56000011);
 }
