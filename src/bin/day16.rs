@@ -93,9 +93,13 @@ fn most_30m_pressure(valves: &HashMap<ValveName, Valve>) -> usize {
         println!("From AA to reach {name} (flow:{flow}), path has len {path}",);
     });
     let mut remain: VecDeque<ValveName> = valves_with_flow.iter().map(|(v, _)| v.clone()).collect();
+    let mut path_memo = HashMap::new();
 
     // TODO: memoize ?
-    max_flow(valves, "AA".to_string(), &mut remain, 30)
+    max_flow(valves, "AA".to_string(), &mut remain, 30, &mut path_memo)
+}
+fn max_flow_with_elephant(valves: &HashMap<ValveName, Valve>) -> usize {
+    0
 }
 
 fn max_flow(
@@ -103,6 +107,7 @@ fn max_flow(
     at: ValveName,
     remaining: &mut VecDeque<ValveName>,
     budget: u8,
+    path_memo: &mut HashMap<(ValveName, ValveName), u8>,
 ) -> usize {
     let mut max = 0;
     //let mut max_through = ValveName::new();
@@ -115,14 +120,20 @@ fn max_flow(
         (0..(30 - budget)).for_each(|_| print! {" "});
         println!("popped {r} of len {}", remaining.len());
         */
-        //TODO: memoize ?
-        let cost = path_to_valve(valves, at.clone(), r.clone());
+        let cost = if let Some(cost) = path_memo.get(&(at.clone(), r.clone())) {
+            *cost
+        } else {
+            let cost = path_to_valve(valves, at.clone(), r.clone());
+            path_memo.insert((at.clone(), r.clone()), cost);
+            cost
+        };
+        //let cost = path_to_valve(valves, at.clone(), r.clone());
         if cost + 1 >= budget {
             remaining.push_back(r);
             continue;
         }
         let new_budget = budget - cost - 1; // cost of turning - 1
-        let mflow = max_flow(valves, r.clone(), remaining, new_budget);
+        let mflow = max_flow(valves, r.clone(), remaining, new_budget, path_memo);
         assert!(v.flow != 0);
         let flow = (new_budget as usize) * v.flow + mflow;
         /*
