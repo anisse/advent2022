@@ -4,6 +4,7 @@ extern crate scan_fmt;
 
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
+use std::collections::VecDeque;
 
 //use crate::Action::*;
 
@@ -87,13 +88,11 @@ fn most_30m_pressure(valves: &HashMap<ValveName, Valve>) -> usize {
         .map(|(name, v)| (name.clone(), v.flow))
         .collect();
 
-    /*
     valves_with_flow.iter().for_each(|(name, flow)| {
         let path = path_to_valve(valves, "AA".to_string(), name.clone());
         println!("From AA to reach {name} (flow:{flow}), path has len {path}",);
     });
-    */
-    let mut remain: Vec<ValveName> = valves_with_flow.iter().map(|(v, _)| v.clone()).collect();
+    let mut remain: VecDeque<ValveName> = valves_with_flow.iter().map(|(v, _)| v.clone()).collect();
 
     // TODO: memoize ?
     max_flow(valves, "AA".to_string(), &mut remain, 30)
@@ -102,27 +101,48 @@ fn most_30m_pressure(valves: &HashMap<ValveName, Valve>) -> usize {
 fn max_flow(
     valves: &HashMap<ValveName, Valve>,
     at: ValveName,
-    remaining: &mut Vec<ValveName>,
+    remaining: &mut VecDeque<ValveName>,
     budget: u8,
 ) -> usize {
     let mut max = 0;
-    println!("At budget {budget} from {at}");
+    //let mut max_through = ValveName::new();
+    //print!(" budget is {budget} from {at}: remain {} ", remaining.len());
     for _ in 0..remaining.len() {
-        let r = remaining.swap_remove(0);
+        let r = remaining.pop_front().expect("a valve name");
         let v = valves.get(&r).expect("some valve");
+
+        /*
+        (0..(30 - budget)).for_each(|_| print! {" "});
+        println!("popped {r} of len {}", remaining.len());
+        */
         //TODO: memoize ?
         let cost = path_to_valve(valves, at.clone(), r.clone());
         if cost + 1 >= budget {
+            remaining.push_back(r);
             continue;
         }
         let new_budget = budget - cost - 1; // cost of turning - 1
-        let flow =
-            (new_budget as usize) * v.flow + max_flow(valves, r.clone(), remaining, new_budget);
+        let mflow = max_flow(valves, r.clone(), remaining, new_budget);
+        assert!(v.flow != 0);
+        let flow = (new_budget as usize) * v.flow + mflow;
+        /*
+        (0..(30 - budget)).for_each(|_| print! {" "});
+        println!("{i}: at {at}->{r} : ->{through} has flow {flow}");
+        */
         if flow > max {
             max = flow;
+            /*
+            (0..(30 - budget)).for_each(|_| print! {" "});
+            println!(" ==== IS MAX ===");
+            */
         }
-        remaining.push(r);
+        /*
+        (0..(30 - budget)).for_each(|_| print! {" "});
+        println!("putting back {r} at the end");
+        */
+        remaining.push_back(r);
     }
+    //println!("got flow of {max}");
     max
 }
 
