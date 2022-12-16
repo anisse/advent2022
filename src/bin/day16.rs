@@ -2,6 +2,7 @@ use advent2022::*;
 #[macro_use]
 extern crate scan_fmt;
 
+use std::cmp::min;
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
 use std::collections::VecDeque;
@@ -257,43 +258,32 @@ fn next_element(
     if let Some(Movement { dest, flow, cost }) = &pos.moving {
         (*dest, *flow, *cost)
     } else {
-        let v = valves.get(&remaining[idx]).expect("some valve");
-        (
-            remaining[idx],
-            v.flow,
-            cost(pos.at, remaining[idx], valves, path_memo),
-        )
+        let dest = remaining[idx];
+        let v = valves.get(&dest).expect("some valve");
+        (dest, v.flow, cost(pos.at, dest, valves, path_memo))
     }
 }
 fn space_indent(budget: u8) {
     (0..(26 - budget)).for_each(|_| print! {" "});
 }
 
-fn move_pos(pos: &Pos, r: ValveName, new_cost: u8) -> Pos {
-    match &pos.moving {
-        Some(Movement { dest, flow, cost }) => {
-            assert_eq!(*dest, r);
-            if new_cost == *cost {
-                // pos reached
-                Pos {
-                    at: *dest,
-                    moving: None,
-                }
-            } else {
-                Pos {
-                    at: pos.at,
-                    moving: Some(Movement {
-                        dest: *dest,
-                        flow: *flow,
-                        cost: *cost - new_cost,
-                    }),
-                }
-            }
-        }
-        None => Pos {
-            at: r,
+fn move_pos(pos: &Pos, dest: ValveName, flow: usize, cost: u8, new_cost: u8) -> Pos {
+    if new_cost == cost {
+        // pos reached
+        Pos {
+            at: dest,
             moving: None,
-        },
+        }
+    } else {
+        assert!(cost > new_cost);
+        Pos {
+            at: pos.at,
+            moving: Some(Movement {
+                dest,
+                flow,
+                cost: cost - new_cost,
+            }),
+        }
     }
 }
 
@@ -315,6 +305,19 @@ where
         v2.extend_from_slice(&v[(removed + 1)..=*r.end()]);
         v2
     }
+}
+fn sub_vec2<T>(v: &[T], rm1: Option<usize>, rm2: Option<usize>) -> Vec<T>
+where
+    T: Clone,
+{
+    let mut v2 = v.to_vec();
+    if let Some(r2) = rm2 {
+        v2.swap_remove(r2);
+    }
+    if let Some(r1) = rm1 {
+        v2.swap_remove(r1);
+    }
+    v2
 }
 
 #[test]
@@ -342,59 +345,44 @@ fn max_flow_double(
         "budget is {budget} from {pos:?}: remain {} :{remaining:?} ",
         remaining.len()
     );
-    //let mut taken = 0;
-    //'outer: while (taken as usize) < remaining.len() {
-    let end = match pos[0].moving {
-        Some(_) => 1,
-        None => remaining.len(),
-    };
-    let end2 = match pos[1].moving {
-        Some(_) => 1,
-        None => remaining.len(),
-    };
-    /*'outer:*/
-    for i in 0..end {
+    let len = remaining.len();
+    let mut i = 0;
+    while i < len {
         space_indent(budget);
-        print!("  taken: {i} / {end}");
+        println!("outer: {i} / {len}");
         let (r, vflow, cost) = next_element(&pos[0], remaining, i, valves, path_memo);
-        println!(" - self, outer - taken: {i} / {end}");
-        for j in (i + 1)..end2 {
-            space_indent(budget);
+        let mut j = if pos[0].moving.is_none() { i + 1 } else { 0 };
+        while j < len {
             let (r_ele, vflow_ele, cost_ele) =
                 next_element(&pos[1], remaining, j, valves, path_memo);
-            println!(" - ele, inner");
 
             if cost + 1 >= budget && cost_ele + 1 >= budget {
                 continue;
             }
-            let (new_budget, flow, new_pos) = match cost.cmp(&cost_ele) {
-                std::cmp::Ordering::Less => (
-                    budget - cost - 1, // cost of turning - 1
-                    vflow,
-                    [move_pos(&pos[0], r, cost), move_pos(&pos[1], r_ele, cost)],
-                ),
-                std::cmp::Ordering::Equal => (
-                    budget - cost - 1, // cost of turning - 1
-                    vflow + vflow_ele,
-                    [move_pos(&pos[0], r, cost), move_pos(&pos[1], r_ele, cost)],
-                ),
-                std::cmp::Ordering::Greater => (
-                    budget - cost_ele - 1, // cost of turning - 1
-                    vflow_ele,
-                    [
-                        move_pos(&pos[0], r, cost_ele),
-                        move_pos(&pos[1], r_ele, cost_ele),
-                    ],
-                ),
-            };
             space_indent(budget);
-            println!("{i}/{end}: at {pos:?}->{new_pos:?}");
+            println!("inner: {j} / {len} - comparing {cost} with {cost_ele}");
+            let (next_cost, next_vflow) = if cost <= cost_ele {
+                (cost, vflow)
+            } else {
+                (cost_ele, vflow_ele)
+            };
+            let (new_budget, flow, new_pos) = (
+                budget - next_cost - 1,
+                next_vflow + if next_cost == cost_ele { vflow_ele } else { 0 },
+                [
+                    move_pos(&pos[0], r, vflow, cost, next_cost),
+                    move_pos(&pos[1], r_ele, vflow_ele, cost_ele, next_cost),
+                ],
+            );
+
             let next_remain = match (&pos[0].moving, &pos[1].moving) {
-                (None, None) => sub_vec(remaining, (i + 1)..=(end - 1), j),
-                (None, Some(_)) => sub_vec(remaining, 0..=(end - 1), i),
-                (Some(_), None) => sub_vec(remaining, 0..=(end2 - 1), j),
+                (None, None) => sub_vec2(remaining, Some(i), Some(j)),
+                (None, Some(_)) => sub_vec2(remaining, Some(i), None),
+                (Some(_), None) => sub_vec2(remaining, None, Some(j)),
                 (Some(_), Some(_)) => unreachable!(),
             };
+            space_indent(budget);
+            println!("{{{i}, {j}}} / {len}: pos {pos:?}->{new_pos:?} rest: {next_remain:?}");
             let mflow = max_flow_double(valves, &new_pos, &next_remain, new_budget, path_memo);
             let new_flow = (new_budget as usize) * flow + mflow;
             space_indent(budget);
@@ -407,6 +395,16 @@ fn max_flow_double(
                 space_indent(budget);
                 println!("IS MAX ===");
             }
+            if pos[1].moving.is_some() {
+                break;
+            } else {
+                j += 1;
+            }
+        }
+        if pos[0].moving.is_some() {
+            break;
+        } else {
+            i += 1;
         }
     }
     space_indent(budget);
