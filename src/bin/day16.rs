@@ -18,11 +18,7 @@ fn main() {
     println!("Summary2: {}", res);
 }
 
-/*
-struct ValveName(u16);
-impl From<String> for ValveName
-*/
-#[derive(Eq, PartialEq, Hash, Clone)]
+#[derive(Eq, PartialEq, Hash, Clone, Copy)]
 struct ValveName(u16);
 impl std::fmt::Display for ValveName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -110,14 +106,14 @@ fn most_30m_pressure(valves: &HashMap<ValveName, Valve>) -> usize {
     let valves_with_flow: HashMap<ValveName, usize> = valves
         .iter()
         .filter(|(_, v)| v.flow > 0)
-        .map(|(name, v)| (name.clone(), v.flow))
+        .map(|(name, v)| (*name, v.flow))
         .collect();
 
     valves_with_flow.iter().for_each(|(name, flow)| {
-        let path = path_to_valve(valves, "AA".into(), name.clone());
+        let path = path_to_valve(valves, "AA".into(), *name);
         println!("From AA to reach {name} (flow:{flow}), path has len {path}",);
     });
-    let mut remain: VecDeque<ValveName> = valves_with_flow.iter().map(|(v, _)| v.clone()).collect();
+    let mut remain: VecDeque<ValveName> = valves_with_flow.iter().map(|(v, _)| *v).collect();
     let mut path_memo = HashMap::new();
 
     max_flow(valves, "AA".into(), &mut remain, 30, &mut path_memo)
@@ -126,14 +122,14 @@ fn max_flow_with_elephant(valves: &HashMap<ValveName, Valve>) -> usize {
     let valves_with_flow: HashMap<ValveName, usize> = valves
         .iter()
         .filter(|(_, v)| v.flow > 0)
-        .map(|(name, v)| (name.clone(), v.flow))
+        .map(|(name, v)| (*name, v.flow))
         .collect();
 
     valves_with_flow.iter().for_each(|(name, flow)| {
-        let path = path_to_valve(valves, "AA".into(), name.clone());
+        let path = path_to_valve(valves, "AA".into(), *name);
         println!("From AA to reach {name} (flow:{flow}), path has len {path}",);
     });
-    let mut remain: VecDeque<ValveName> = valves_with_flow.iter().map(|(v, _)| v.clone()).collect();
+    let mut remain: VecDeque<ValveName> = valves_with_flow.iter().map(|(v, _)| *v).collect();
     let mut path_memo = HashMap::new();
 
     max_flow_double(
@@ -172,20 +168,20 @@ fn max_flow(
         (0..(30 - budget)).for_each(|_| print! {" "});
         println!("popped {r} of len {}", remaining.len());
         */
-        let cost = if let Some(cost) = path_memo.get(&(at.clone(), r.clone())) {
+        let cost = if let Some(cost) = path_memo.get(&(at, r)) {
             *cost
         } else {
-            let cost = path_to_valve(valves, at.clone(), r.clone());
-            path_memo.insert((at.clone(), r.clone()), cost);
+            let cost = path_to_valve(valves, at, r);
+            path_memo.insert((at, r), cost);
             cost
         };
-        //let cost = path_to_valve(valves, at.clone(), r.clone());
+        //let cost = path_to_valve(valves, at, r);
         if cost + 1 >= budget {
             remaining.push_back(r);
             continue;
         }
         let new_budget = budget - cost - 1; // cost of turning - 1
-        let mflow = max_flow(valves, r.clone(), remaining, new_budget, path_memo);
+        let mflow = max_flow(valves, r, remaining, new_budget, path_memo);
         assert!(v.flow != 0);
         let flow = (new_budget as usize) * v.flow + mflow;
         /*
@@ -218,14 +214,14 @@ fn next(
     let r = remaining.pop_front().expect("a valve name");
     let v = valves.get(&r).expect("some valve");
 
-    let cost = if let Some(cost) = path_memo.get(&(at.clone(), r.clone())) {
+    let cost = if let Some(cost) = path_memo.get(&(at, r)) {
         *cost
     } else {
-        let cost = path_to_valve(valves, at.clone(), r.clone());
-        path_memo.insert((at, r.clone()), cost);
+        let cost = path_to_valve(valves, at, r);
+        path_memo.insert((at, r), cost);
         cost
     };
-    (r.clone(), v.flow, cost)
+    (r, v.flow, cost)
 }
 
 #[derive(Debug)]
@@ -263,14 +259,14 @@ fn nexter(
     path_memo: &mut HashMap<(ValveName, ValveName), u8>,
 ) -> (ValveName, usize, u8, bool) {
     if let Some(Movement { dest, flow, cost }) = &pos.moving {
-        (dest.clone(), *flow, *cost, false)
+        (*dest, *flow, *cost, false)
     } else if remaining.len() as i8 > *taken {
         *taken += 1;
-        let (r, v, c) = next(pos.at.clone(), valves, remaining, path_memo);
+        let (r, v, c) = next(pos.at, valves, remaining, path_memo);
         print!("taken {r} for {pos:?} (tot: {taken})");
         (r, v, c, true)
     } else {
-        (pos.at.clone(), 0, 0, false)
+        (pos.at, 0, 0, false)
     }
 }
 fn space_indent(budget: u8) {
@@ -304,7 +300,7 @@ fn max_flow_double(
             if cost + 1 >= budget && cost_ele + 1 >= budget {
                 space_indent(budget);
                 if t_ele {
-                    remaining.push_back(r_ele.clone());
+                    remaining.push_back(r_ele);
                     println!(
                         "skipping inner {r_ele}, putting at the end {taken_inner}/{}",
                         remaining.len()
@@ -318,7 +314,7 @@ fn max_flow_double(
                         "skipping outer {r}, putting at the end {taken}/{}",
                         remaining.len()
                     );
-                    remaining.push_back(r.clone());
+                    remaining.push_back(r);
                     continue 'outer;
                 } else {
                     println!("skipping outer {r}, stopping");
@@ -331,13 +327,13 @@ fn max_flow_double(
                     vflow,
                     [
                         Pos {
-                            at: r.clone(),
+                            at: r,
                             moving: None,
                         },
                         Pos {
-                            at: pos[1].at.clone(),
+                            at: pos[1].at,
                             moving: Some(Movement {
-                                dest: r_ele.clone(),
+                                dest: r_ele,
                                 flow: vflow_ele,
                                 cost: cost_ele - cost,
                             }),
@@ -349,11 +345,11 @@ fn max_flow_double(
                     vflow + vflow_ele,
                     [
                         Pos {
-                            at: r.clone(),
+                            at: r,
                             moving: None,
                         },
                         Pos {
-                            at: r_ele.clone(),
+                            at: r_ele,
                             moving: None,
                         },
                     ],
@@ -363,15 +359,15 @@ fn max_flow_double(
                     vflow_ele,
                     [
                         Pos {
-                            at: pos[0].at.clone(),
+                            at: pos[0].at,
                             moving: Some(Movement {
-                                dest: r.clone(),
+                                dest: r,
                                 flow: vflow,
                                 cost: cost - cost_ele,
                             }),
                         },
                         Pos {
-                            at: r_ele.clone(),
+                            at: r_ele,
                             moving: None,
                         },
                     ],
@@ -440,8 +436,8 @@ fn path_to_valve(valves: &HashMap<ValveName, Valve>, start: ValveName, target: V
                 continue;
             }
         }
-        //costpath.insert(cost, valve.clone());
-        mincost.insert(valve.clone(), cost);
+        //costpath.insert(cost, valve);
+        mincost.insert(valve, cost);
         if valve == target {
             return cost;
             /*
@@ -453,7 +449,7 @@ fn path_to_valve(valves: &HashMap<ValveName, Valve>, start: ValveName, target: V
         }
         for n in valves.get(&valve).expect("some valve").tunnels.iter() {
             next.push(VNext {
-                valve: n.clone(),
+                valve: *n,
                 cost: cost + 1,
             });
         }
