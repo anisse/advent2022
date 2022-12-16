@@ -85,15 +85,46 @@ fn most_30m_pressure(valves: &HashMap<ValveName, Valve>) -> usize {
         .map(|(name, v)| (name.clone(), v.flow))
         .collect();
 
+    /*
     valves_with_flow.iter().for_each(|(name, flow)| {
         let path = path_to_valve(valves, "AA".to_string(), name.clone());
         println!("From AA to reach {name} (flow:{flow}), path has len {path}",);
     });
+    */
+    let mut remain: Vec<ValveName> = valves_with_flow.iter().map(|(v, _)| v.clone()).collect();
 
-    0
+    // TODO: memoize ?
+    max_flow(valves, "AA".to_string(), &mut remain, 30)
 }
 
-fn path_to_valve(valves: &HashMap<ValveName, Valve>, start: ValveName, target: ValveName) -> usize {
+fn max_flow(
+    valves: &HashMap<ValveName, Valve>,
+    at: ValveName,
+    remaining: &mut Vec<ValveName>,
+    budget: u8,
+) -> usize {
+    let mut max = 0;
+    println!("At budget {budget} from {at}");
+    for _ in 0..remaining.len() {
+        let r = remaining.swap_remove(0);
+        let v = valves.get(&r).expect("some valve");
+        //TODO: memoize ?
+        let cost = path_to_valve(valves, at.clone(), r.clone());
+        if cost + 1 >= budget {
+            continue;
+        }
+        let new_budget = budget - cost - 1; // cost of turning - 1
+        let flow =
+            (new_budget as usize) * v.flow + max_flow(valves, r.clone(), remaining, new_budget);
+        if flow > max {
+            max = flow;
+        }
+        remaining.push(r);
+    }
+    max
+}
+
+fn path_to_valve(valves: &HashMap<ValveName, Valve>, start: ValveName, target: ValveName) -> u8 {
     // Here we need shortest path, let's start with that
     #[derive(Eq, PartialEq)]
     struct VNext {
@@ -127,7 +158,7 @@ fn path_to_valve(valves: &HashMap<ValveName, Valve>, start: ValveName, target: V
         //costpath.insert(cost, valve.clone());
         mincost.insert(valve.clone(), cost);
         if valve == target {
-            return cost as usize;
+            return cost;
             /*
             return (0..=cost)
                 .map(|c| costpath.get(&c).expect("some path"))
@@ -142,12 +173,7 @@ fn path_to_valve(valves: &HashMap<ValveName, Valve>, start: ValveName, target: V
             });
         }
     }
-    usize::MAX
-}
-
-struct OpenValve {
-    name: ValveName,
-    flow: usize,
+    u8::MAX
 }
 
 #[test]
