@@ -232,18 +232,24 @@ impl std::fmt::Debug for Pos {
 
 fn nexter(
     pos: &Pos,
+    taken: &mut i8,
     valves: &HashMap<ValveName, Valve>,
     remaining: &mut VecDeque<ValveName>,
     path_memo: &mut HashMap<(ValveName, ValveName), u8>,
 ) -> (String, usize, u8, bool) {
     if let Some(Movement { dest, flow, cost }) = &pos.moving {
         (dest.clone(), *flow, *cost, false)
-    } else if !remaining.is_empty() {
+    } else if remaining.len() as i8 > *taken {
+        *taken += 1;
         let (r, v, c) = next(pos.at.clone(), valves, remaining, path_memo);
+        print!("taken {r} for {pos:?} (tot: {taken})");
         (r, v, c, true)
     } else {
         (pos.at.clone(), 0, 0, false)
     }
+}
+fn space_indent(budget: u8) {
+    (0..(26 - budget)).for_each(|_| print! {" "});
 }
 fn max_flow_double(
     valves: &HashMap<ValveName, Valve>,
@@ -253,98 +259,127 @@ fn max_flow_double(
     path_memo: &mut HashMap<(ValveName, ValveName), u8>,
 ) -> usize {
     let mut max = 0;
-    (0..(30 - budget)).for_each(|_| print! {" "});
+    space_indent(budget);
     println!(
-        "budget is {budget} from {pos:?}: remain {} ",
+        "budget is {budget} from {pos:?}: remain {} :{remaining:?} ",
         remaining.len()
     );
     let mut taken = 0;
-    while taken < remaining.len() {
-        let (r, vflow, cost, t) = nexter(&pos[0], valves, remaining, path_memo);
-        if t {
-            taken += 1;
-        }
-        let (r_ele, vflow_ele, cost_ele, t_ele) = nexter(&pos[1], valves, remaining, path_memo);
-        if t_ele {
-            taken += 1;
-        }
+    'outer: while (taken as usize) < remaining.len() {
+        space_indent(budget);
+        let (r, vflow, cost, t) = nexter(&pos[0], &mut taken, valves, remaining, path_memo);
+        println!(" - self, outer");
+        let mut taken_inner = 0;
+        while (taken_inner as usize) < remaining.len() {
+            space_indent(budget);
+            let (r_ele, vflow_ele, cost_ele, t_ele) =
+                nexter(&pos[1], &mut taken_inner, valves, remaining, path_memo);
+            println!(" - ele, inner");
 
-        if cost + 1 >= budget && t {
+            if cost + 1 >= budget && cost_ele + 1 >= budget {
+                space_indent(budget);
+                if t_ele {
+                    remaining.push_back(r_ele.clone());
+                    println!(
+                        "skipping inner {r_ele}, putting at the end {taken_inner}/{}",
+                        remaining.len()
+                    );
+                    continue;
+                }
+                println!();
+                space_indent(budget);
+                if t {
+                    println!(
+                        "skipping outer {r}, putting at the end {taken}/{}",
+                        remaining.len()
+                    );
+                    remaining.push_back(r.clone());
+                    continue 'outer;
+                } else {
+                    println!("skipping outer {r}, stopping");
+                    break 'outer;
+                }
+            }
+            let (new_budget, flow, new_pos) = match cost.cmp(&cost_ele) {
+                std::cmp::Ordering::Less => (
+                    budget - cost - 1, // cost of turning - 1
+                    vflow,
+                    [
+                        Pos {
+                            at: r.clone(),
+                            moving: None,
+                        },
+                        Pos {
+                            at: pos[1].at.clone(),
+                            moving: Some(Movement {
+                                dest: r_ele.clone(),
+                                flow: vflow_ele,
+                                cost: cost_ele - cost,
+                            }),
+                        },
+                    ],
+                ),
+                std::cmp::Ordering::Equal => (
+                    budget - cost - 1, // cost of turning - 1
+                    vflow + vflow_ele,
+                    [
+                        Pos {
+                            at: r.clone(),
+                            moving: None,
+                        },
+                        Pos {
+                            at: r_ele.clone(),
+                            moving: None,
+                        },
+                    ],
+                ),
+                std::cmp::Ordering::Greater => (
+                    budget - cost_ele - 1, // cost of turning - 1
+                    vflow_ele,
+                    [
+                        Pos {
+                            at: pos[0].at.clone(),
+                            moving: Some(Movement {
+                                dest: r.clone(),
+                                flow: vflow,
+                                cost: cost - cost_ele,
+                            }),
+                        },
+                        Pos {
+                            at: r_ele.clone(),
+                            moving: None,
+                        },
+                    ],
+                ),
+            };
+            space_indent(budget);
+            println!("{taken_inner}/{}: at {pos:?}->{new_pos:?}", remaining.len());
+            let mflow = max_flow_double(valves, new_pos, remaining, new_budget, path_memo);
+            let new_flow = (new_budget as usize) * flow + mflow;
+            space_indent(budget);
+            println!("= has flow {new_flow}");
+            if new_flow > max {
+                max = new_flow;
+                space_indent(budget);
+                println!("IS MAX ===");
+            }
+            if t_ele {
+                space_indent(budget);
+                println!("done with inner {r_ele}, putting at the end");
+                remaining.push_back(r_ele);
+            } else {
+                break;
+            }
+        }
+        if t {
+            space_indent(budget);
+            println!("done with {r}, putting at the end");
             remaining.push_back(r);
-            continue;
+        } else {
+            break;
         }
-        if cost_ele + 1 >= budget && t_ele {
-            remaining.push_back(r_ele);
-            continue;
-        }
-        let (new_budget, flow, new_pos) = match cost.cmp(&cost_ele) {
-            std::cmp::Ordering::Less => (
-                budget - cost - 1, // cost of turning - 1
-                vflow,
-                [
-                    Pos {
-                        at: r.clone(),
-                        moving: None,
-                    },
-                    Pos {
-                        at: pos[1].at.clone(),
-                        moving: Some(Movement {
-                            dest: r_ele.clone(),
-                            flow: vflow_ele,
-                            cost: cost_ele - cost,
-                        }),
-                    },
-                ],
-            ),
-            std::cmp::Ordering::Equal => (
-                budget - cost - 1, // cost of turning - 1
-                vflow + vflow_ele,
-                [
-                    Pos {
-                        at: r.clone(),
-                        moving: None,
-                    },
-                    Pos {
-                        at: r_ele.clone(),
-                        moving: None,
-                    },
-                ],
-            ),
-            std::cmp::Ordering::Greater => (
-                budget - cost_ele - 1, // cost of turning - 1
-                vflow_ele,
-                [
-                    Pos {
-                        at: pos[0].at.clone(),
-                        moving: Some(Movement {
-                            dest: r.clone(),
-                            flow: vflow,
-                            cost: cost - cost_ele,
-                        }),
-                    },
-                    Pos {
-                        at: r_ele.clone(),
-                        moving: None,
-                    },
-                ],
-            ),
-        };
-        (0..(30 - budget)).for_each(|_| print! {" "});
-        println!("{taken}/{}: at {pos:?}->{new_pos:?}", remaining.len());
-        let mflow = max_flow_double(valves, new_pos, remaining, new_budget, path_memo);
-        let new_flow = (new_budget as usize) * flow + mflow;
-        (0..(30 - budget)).for_each(|_| print! {" "});
-        println!("= has flow {new_flow}");
-        if new_flow > max {
-            max = new_flow;
-            (0..(30 - budget)).for_each(|_| print! {" "});
-            println!("IS MAX ===");
-        }
-        (0..(30 - budget)).for_each(|_| print! {" "});
-        println!("putting back {r} at the end");
-        remaining.push_back(r);
     }
-    (0..(30 - budget)).for_each(|_| print! {" "});
+    space_indent(budget);
     println!("got flow of {max}");
     max
 }
