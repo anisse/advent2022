@@ -63,7 +63,6 @@ enum Action {
     Open(ValveName),
     GoTo(ValveName),
 }
-*/
 #[derive(Debug, Clone)]
 struct State {
     pos: ValveName,
@@ -71,14 +70,17 @@ struct State {
     state: HashMap<ValveName, bool>,
     flow: usize,
 }
+*/
 
 fn most_30m_pressure(valves: &HashMap<ValveName, Valve>) -> usize {
+    /*
     let mut state = State {
         pos: "AA".to_string(),
         //path: Vec::new(),
         state: HashMap::new(),
         flow: 0,
     };
+    */
     let valves_with_flow: HashMap<ValveName, usize> = valves
         .iter()
         .filter(|(_, v)| v.flow > 0)
