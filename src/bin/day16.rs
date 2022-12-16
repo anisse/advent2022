@@ -22,7 +22,32 @@ fn main() {
 struct ValveName(u16);
 impl From<String> for ValveName
 */
-type ValveName = String;
+#[derive(Eq, PartialEq, Hash, Clone)]
+struct ValveName(u16);
+impl std::fmt::Display for ValveName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}{}",
+            (self.0 & 0xFF) as u8 as char,
+            ((self.0 >> 8) & 0xFF) as u8 as char
+        )
+    }
+}
+impl std::fmt::Debug for ValveName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self)
+    }
+}
+
+impl From<&str> for ValveName {
+    fn from(s: &str) -> Self {
+        Self(
+            s.chars().next().expect("first") as u8 as u16
+                | ((s.chars().nth(1).expect("second") as u8 as u16) << 8),
+        )
+    }
+}
 
 #[derive(Debug, Clone)]
 struct Valve {
@@ -30,7 +55,7 @@ struct Valve {
     tunnels: Vec<ValveName>,
 }
 
-fn parse(input: &str) -> HashMap<String, Valve> {
+fn parse(input: &str) -> HashMap<ValveName, Valve> {
     input
         .lines()
         .map(|l| {
@@ -48,10 +73,10 @@ fn parse(input: &str) -> HashMap<String, Valve> {
             .expect("parse error");
 
             (
-                name,
+                name[..].into(),
                 Valve {
                     flow,
-                    tunnels: tunnels.split(", ").map(|t| t.to_string()).collect(),
+                    tunnels: tunnels.split(", ").map(|t| t.into()).collect(),
                 },
             )
         })
@@ -89,13 +114,13 @@ fn most_30m_pressure(valves: &HashMap<ValveName, Valve>) -> usize {
         .collect();
 
     valves_with_flow.iter().for_each(|(name, flow)| {
-        let path = path_to_valve(valves, "AA".to_string(), name.clone());
+        let path = path_to_valve(valves, "AA".into(), name.clone());
         println!("From AA to reach {name} (flow:{flow}), path has len {path}",);
     });
     let mut remain: VecDeque<ValveName> = valves_with_flow.iter().map(|(v, _)| v.clone()).collect();
     let mut path_memo = HashMap::new();
 
-    max_flow(valves, "AA".to_string(), &mut remain, 30, &mut path_memo)
+    max_flow(valves, "AA".into(), &mut remain, 30, &mut path_memo)
 }
 fn max_flow_with_elephant(valves: &HashMap<ValveName, Valve>) -> usize {
     let valves_with_flow: HashMap<ValveName, usize> = valves
@@ -105,7 +130,7 @@ fn max_flow_with_elephant(valves: &HashMap<ValveName, Valve>) -> usize {
         .collect();
 
     valves_with_flow.iter().for_each(|(name, flow)| {
-        let path = path_to_valve(valves, "AA".to_string(), name.clone());
+        let path = path_to_valve(valves, "AA".into(), name.clone());
         println!("From AA to reach {name} (flow:{flow}), path has len {path}",);
     });
     let mut remain: VecDeque<ValveName> = valves_with_flow.iter().map(|(v, _)| v.clone()).collect();
@@ -115,11 +140,11 @@ fn max_flow_with_elephant(valves: &HashMap<ValveName, Valve>) -> usize {
         valves,
         [
             Pos {
-                at: "AA".to_string(),
+                at: "AA".into(),
                 moving: None,
             },
             Pos {
-                at: "AA".to_string(),
+                at: "AA".into(),
                 moving: None,
             },
         ],
@@ -189,7 +214,7 @@ fn next(
     valves: &HashMap<ValveName, Valve>,
     remaining: &mut VecDeque<ValveName>,
     path_memo: &mut HashMap<(ValveName, ValveName), u8>,
-) -> (String, usize, u8) {
+) -> (ValveName, usize, u8) {
     let r = remaining.pop_front().expect("a valve name");
     let v = valves.get(&r).expect("some valve");
 
@@ -236,7 +261,7 @@ fn nexter(
     valves: &HashMap<ValveName, Valve>,
     remaining: &mut VecDeque<ValveName>,
     path_memo: &mut HashMap<(ValveName, ValveName), u8>,
-) -> (String, usize, u8, bool) {
+) -> (ValveName, usize, u8, bool) {
     if let Some(Movement { dest, flow, cost }) = &pos.moving {
         (dest.clone(), *flow, *cost, false)
     } else if remaining.len() as i8 > *taken {
@@ -428,7 +453,7 @@ fn path_to_valve(valves: &HashMap<ValveName, Valve>, start: ValveName, target: V
         }
         for n in valves.get(&valve).expect("some valve").tunnels.iter() {
             next.push(VNext {
-                valve: n.to_string(),
+                valve: n.clone(),
                 cost: cost + 1,
             });
         }
