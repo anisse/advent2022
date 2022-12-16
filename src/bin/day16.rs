@@ -28,11 +28,15 @@ fn parse(input: &str) -> HashMap<String, Valve> {
     input
         .lines()
         .map(|l| {
-            let (name, flow, tunnels) = scan_fmt!(
+            println!("{}", l);
+            let (name, flow, _, _, _, tunnels) = scan_fmt!(
                 l,
-                "Valve {} has flow rate={}; tunnels lead to valves {}",
+                "Valve {} has flow rate={d}; {} {} to {} {/.*/}{e}",
                 String,
                 usize,
+                String,
+                String,
+                String,
                 String
             )
             .expect("parse error");
