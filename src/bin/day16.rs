@@ -129,12 +129,12 @@ fn max_flow_with_elephant(valves: &HashMap<ValveName, Valve>) -> usize {
         let path = path_to_valve(valves, "AA".into(), *name);
         println!("From AA to reach {name} (flow:{flow}), path has len {path}",);
     });
-    let mut remain: VecDeque<ValveName> = valves_with_flow.iter().map(|(v, _)| *v).collect();
+    let remain: Vec<ValveName> = valves_with_flow.iter().map(|(v, _)| *v).collect();
     let mut path_memo = HashMap::new();
 
     max_flow_double(
         valves,
-        [
+        &[
             Pos {
                 at: "AA".into(),
                 moving: None,
@@ -144,7 +144,7 @@ fn max_flow_with_elephant(valves: &HashMap<ValveName, Valve>) -> usize {
                 moving: None,
             },
         ],
-        &mut remain,
+        &remain,
         26,
         &mut path_memo,
     )
@@ -205,25 +205,6 @@ fn max_flow(
     max
 }
 
-fn next(
-    at: ValveName,
-    valves: &HashMap<ValveName, Valve>,
-    remaining: &mut VecDeque<ValveName>,
-    path_memo: &mut HashMap<(ValveName, ValveName), u8>,
-) -> (ValveName, usize, u8) {
-    let r = remaining.pop_front().expect("a valve name");
-    let v = valves.get(&r).expect("some valve");
-
-    let cost = if let Some(cost) = path_memo.get(&(at, r)) {
-        *cost
-    } else {
-        let cost = path_to_valve(valves, at, r);
-        path_memo.insert((at, r), cost);
-        cost
-    };
-    (r, v.flow, cost)
-}
-
 #[derive(Debug)]
 struct Movement {
     dest: ValveName,
@@ -251,31 +232,107 @@ impl std::fmt::Debug for Pos {
     }
 }
 
-fn nexter(
-    pos: &Pos,
-    taken: &mut i8,
+fn cost(
+    at: ValveName,
+    to: ValveName,
     valves: &HashMap<ValveName, Valve>,
-    remaining: &mut VecDeque<ValveName>,
     path_memo: &mut HashMap<(ValveName, ValveName), u8>,
-) -> (ValveName, usize, u8, bool) {
-    if let Some(Movement { dest, flow, cost }) = &pos.moving {
-        (*dest, *flow, *cost, false)
-    } else if remaining.len() as i8 > *taken {
-        *taken += 1;
-        let (r, v, c) = next(pos.at, valves, remaining, path_memo);
-        print!("taken {r} for {pos:?} (tot: {taken})");
-        (r, v, c, true)
+) -> u8 {
+    if let Some(cost) = path_memo.get(&(at, to)) {
+        *cost
     } else {
-        (pos.at, 0, 0, false)
+        let cost = path_to_valve(valves, at, to);
+        path_memo.insert((at, to), cost);
+        cost
+    }
+}
+
+fn next_element(
+    pos: &Pos,
+    remaining: &[ValveName],
+    idx: usize,
+    valves: &HashMap<ValveName, Valve>,
+    path_memo: &mut HashMap<(ValveName, ValveName), u8>,
+) -> (ValveName, usize, u8) {
+    if let Some(Movement { dest, flow, cost }) = &pos.moving {
+        (*dest, *flow, *cost)
+    } else {
+        let v = valves.get(&remaining[idx]).expect("some valve");
+        (
+            remaining[idx],
+            v.flow,
+            cost(pos.at, remaining[idx], valves, path_memo),
+        )
     }
 }
 fn space_indent(budget: u8) {
     (0..(26 - budget)).for_each(|_| print! {" "});
 }
+
+fn move_pos(pos: &Pos, r: ValveName, new_cost: u8) -> Pos {
+    match &pos.moving {
+        Some(Movement { dest, flow, cost }) => {
+            assert_eq!(*dest, r);
+            if new_cost == *cost {
+                // pos reached
+                Pos {
+                    at: *dest,
+                    moving: None,
+                }
+            } else {
+                Pos {
+                    at: pos.at,
+                    moving: Some(Movement {
+                        dest: *dest,
+                        flow: *flow,
+                        cost: *cost - new_cost,
+                    }),
+                }
+            }
+        }
+        None => Pos {
+            at: r,
+            moving: None,
+        },
+    }
+}
+
+fn sub_vec<T>(v: &[T], r: std::ops::RangeInclusive<usize>, removed: usize) -> Vec<T>
+where
+    T: Clone,
+{
+    assert!(r.contains(&removed));
+    assert!(*r.end() < v.len());
+    if *r.start() >= *r.end() {
+        Vec::new()
+    } else if removed == *r.start() {
+        v[(removed + 1)..=*r.end()].to_vec()
+    } else if removed == *r.end() {
+        v[*r.start()..removed].to_vec()
+    } else {
+        let mut v2 = Vec::with_capacity(r.end() - r.start());
+        v2.extend_from_slice(&v[*r.start()..removed]);
+        v2.extend_from_slice(&v[(removed + 1)..=*r.end()]);
+        v2
+    }
+}
+
+#[test]
+fn test_sub_vec() {
+    let v = vec![1, 2, 3, 4, 5, 6];
+    assert_eq!(sub_vec(&v, 1..=5, 1), vec![3, 4, 5, 6]);
+    assert_eq!(sub_vec(&v, 0..=5, 1), vec![1, 3, 4, 5, 6]);
+    assert_eq!(sub_vec(&v, 0..=5, 0), vec![2, 3, 4, 5, 6]);
+    assert_eq!(sub_vec(&v, 0..=5, 2), vec![1, 2, 4, 5, 6]);
+    assert_eq!(sub_vec(&v, 0..=3, 3), vec![1, 2, 3]);
+    assert_eq!(sub_vec(&v, 0..=5, 3), vec![1, 2, 3, 5, 6]);
+    assert_eq!(sub_vec(&v, 0..=4, 4), vec![1, 2, 3, 4,]);
+}
+
 fn max_flow_double(
     valves: &HashMap<ValveName, Valve>,
-    pos: [Pos; 2],
-    remaining: &mut VecDeque<ValveName>,
+    pos: &[Pos; 2],
+    remaining: &[ValveName],
     budget: u8,
     path_memo: &mut HashMap<(ValveName, ValveName), u8>,
 ) -> usize {
@@ -285,119 +342,71 @@ fn max_flow_double(
         "budget is {budget} from {pos:?}: remain {} :{remaining:?} ",
         remaining.len()
     );
-    let mut taken = 0;
-    'outer: while (taken as usize) < remaining.len() {
+    //let mut taken = 0;
+    //'outer: while (taken as usize) < remaining.len() {
+    let end = match pos[0].moving {
+        Some(_) => 1,
+        None => remaining.len(),
+    };
+    let end2 = match pos[1].moving {
+        Some(_) => 1,
+        None => remaining.len(),
+    };
+    /*'outer:*/
+    for i in 0..end {
         space_indent(budget);
-        let (r, vflow, cost, t) = nexter(&pos[0], &mut taken, valves, remaining, path_memo);
-        println!(" - self, outer");
-        let mut taken_inner = 0;
-        while (taken_inner as usize) < remaining.len() {
+        print!("  taken: {i} / {end}");
+        let (r, vflow, cost) = next_element(&pos[0], remaining, i, valves, path_memo);
+        println!(" - self, outer - taken: {i} / {end}");
+        for j in (i + 1)..end2 {
             space_indent(budget);
-            let (r_ele, vflow_ele, cost_ele, t_ele) =
-                nexter(&pos[1], &mut taken_inner, valves, remaining, path_memo);
+            let (r_ele, vflow_ele, cost_ele) =
+                next_element(&pos[1], remaining, j, valves, path_memo);
             println!(" - ele, inner");
 
             if cost + 1 >= budget && cost_ele + 1 >= budget {
-                space_indent(budget);
-                if t_ele {
-                    remaining.push_back(r_ele);
-                    println!(
-                        "skipping inner {r_ele}, putting at the end {taken_inner}/{}",
-                        remaining.len()
-                    );
-                    continue;
-                }
-                println!();
-                space_indent(budget);
-                if t {
-                    println!(
-                        "skipping outer {r}, putting at the end {taken}/{}",
-                        remaining.len()
-                    );
-                    remaining.push_back(r);
-                    continue 'outer;
-                } else {
-                    println!("skipping outer {r}, stopping");
-                    break 'outer;
-                }
+                continue;
             }
             let (new_budget, flow, new_pos) = match cost.cmp(&cost_ele) {
                 std::cmp::Ordering::Less => (
                     budget - cost - 1, // cost of turning - 1
                     vflow,
-                    [
-                        Pos {
-                            at: r,
-                            moving: None,
-                        },
-                        Pos {
-                            at: pos[1].at,
-                            moving: Some(Movement {
-                                dest: r_ele,
-                                flow: vflow_ele,
-                                cost: cost_ele - cost,
-                            }),
-                        },
-                    ],
+                    [move_pos(&pos[0], r, cost), move_pos(&pos[1], r_ele, cost)],
                 ),
                 std::cmp::Ordering::Equal => (
                     budget - cost - 1, // cost of turning - 1
                     vflow + vflow_ele,
-                    [
-                        Pos {
-                            at: r,
-                            moving: None,
-                        },
-                        Pos {
-                            at: r_ele,
-                            moving: None,
-                        },
-                    ],
+                    [move_pos(&pos[0], r, cost), move_pos(&pos[1], r_ele, cost)],
                 ),
                 std::cmp::Ordering::Greater => (
                     budget - cost_ele - 1, // cost of turning - 1
                     vflow_ele,
                     [
-                        Pos {
-                            at: pos[0].at,
-                            moving: Some(Movement {
-                                dest: r,
-                                flow: vflow,
-                                cost: cost - cost_ele,
-                            }),
-                        },
-                        Pos {
-                            at: r_ele,
-                            moving: None,
-                        },
+                        move_pos(&pos[0], r, cost_ele),
+                        move_pos(&pos[1], r_ele, cost_ele),
                     ],
                 ),
             };
             space_indent(budget);
-            println!("{taken_inner}/{}: at {pos:?}->{new_pos:?}", remaining.len());
-            let mflow = max_flow_double(valves, new_pos, remaining, new_budget, path_memo);
+            println!("{i}/{end}: at {pos:?}->{new_pos:?}");
+            let next_remain = match (&pos[0].moving, &pos[1].moving) {
+                (None, None) => sub_vec(remaining, (i + 1)..=(end - 1), j),
+                (None, Some(_)) => sub_vec(remaining, 0..=(end - 1), i),
+                (Some(_), None) => sub_vec(remaining, 0..=(end2 - 1), j),
+                (Some(_), Some(_)) => unreachable!(),
+            };
+            let mflow = max_flow_double(valves, &new_pos, &next_remain, new_budget, path_memo);
             let new_flow = (new_budget as usize) * flow + mflow;
             space_indent(budget);
-            println!("= has flow {new_flow}");
+            println!(
+                "= has flow {new_flow} = {new_budget} * {flow} + {mflow} at step {} with {pos:?}->{new_pos:?}",
+                27 - budget
+            );
             if new_flow > max {
                 max = new_flow;
                 space_indent(budget);
                 println!("IS MAX ===");
             }
-            if t_ele {
-                space_indent(budget);
-                println!("done with inner {r_ele}, putting at the end");
-                remaining.push_back(r_ele);
-            } else {
-                break;
-            }
-        }
-        if t {
-            space_indent(budget);
-            println!("done with {r}, putting at the end");
-            remaining.push_back(r);
-        } else {
-            break;
         }
     }
     space_indent(budget);
