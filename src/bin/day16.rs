@@ -245,7 +245,7 @@ fn cost(
     if let Some(cost) = path_memo.get(&(at, to)) {
         *cost
     } else {
-        let cost = path_to_valve(valves, at, to);
+        let cost = path_to_valve(valves, at, to) + 1; // add cost of turning directly here
         path_memo.insert((at, to), cost);
         cost
     }
@@ -268,7 +268,7 @@ fn move_pos(src: ValveName, mov: &Movement, next: bool, new_cost: u8) -> Pos {
             moving: Some(Movement {
                 dest: mov.dest,
                 flow: mov.flow,
-                cost: mov.cost - new_cost - 1,
+                cost: mov.cost - new_cost,
             }),
         }
     }
@@ -458,7 +458,7 @@ fn max_flow_double_pair(
     budget: u8,
     path_memo: &mut HashMap<(ValveName, ValveName), u8>,
 ) -> usize {
-    if mov[0].cost + 1 >= budget && mov[1].cost + 1 >= budget {
+    if mov[0].cost >= budget && mov[1].cost >= budget {
         return 0;
     }
     let (next, next_cost) = match mov[0].cost.cmp(&mov[1].cost) {
@@ -467,7 +467,7 @@ fn max_flow_double_pair(
         std::cmp::Ordering::Greater => ([false, true], mov[1].cost),
     };
     let (new_budget, flow, new_pos) = (
-        budget - next_cost - 1,
+        budget - next_cost,
         if next[0] { mov[0].flow } else { 0 } + if next[1] { mov[1].flow } else { 0 },
         [
             move_pos(src[0], mov[0], next[0], next_cost),
@@ -475,20 +475,24 @@ fn max_flow_double_pair(
         ],
     );
 
+    /*
     space_indent(budget);
     println!("pos {src:?}->{new_pos:?} rest: {remaining:?}");
+    */
     let mflow = max_flow_double(valves, &new_pos, remaining, new_budget, path_memo);
     let new_flow = (new_budget as usize) * flow + mflow;
+    /*
     space_indent(budget);
     println!(
                 "= has flow {new_flow} = {new_budget} * {flow} + {mflow} at step {} with {src:?}->{new_pos:?}",
                 27 - budget
             );
+    */
     new_flow
 }
 
 fn flow_exhaust(m: &Movement, budget: u8) -> usize {
-    m.flow * (budget as usize - m.cost as usize - 1)
+    m.flow * (budget as usize - m.cost as usize)
 }
 
 fn path_to_valve(valves: &HashMap<ValveName, Valve>, start: ValveName, target: ValveName) -> u8 {
