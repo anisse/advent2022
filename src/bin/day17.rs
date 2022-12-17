@@ -8,8 +8,8 @@ fn main() {
     let res = simulate(&jets, 2022);
     println!("Summary: {}", res);
     //part 2
-    //let res = operation2(&jets);
-    //println!("Summary2: {}", res);
+    let res = simulate_big(&jets, 1000000000000);
+    println!("Summary2: {}", res);
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Tile {
@@ -73,6 +73,53 @@ fn simulate(jets: &[Jet], rounds: usize) -> usize {
         //print_tower(&tower);
     }
     tower.len()
+}
+fn simulate_big(jets: &[Jet], rounds: usize) -> usize {
+    let rocks = rocks();
+    let mut tower: Tower = Vec::new();
+    let mut j = 0;
+    // Attempt to find the "loop" (hoping it exists), this way we know its len, we know how it will
+    // repeat, modulo the "big" rounds, simulate the rest, multiply, add and we have the result.
+    //let mut first = true;
+    let mut prev_height = 0;
+    let mut prev_tower_height = 0;
+    //let mut tower_top_match = [Space, Space, Space, Space, Space, Space, Space];
+    let mut r = 0;
+    let mut prev_rocks = 0;
+    let mut loop_rocks;
+    loop {
+        for r in 0..rocks.len() {
+            j += add_rock(&mut tower, &rocks[r % rocks.len()], jets, j);
+        }
+        r += rocks.len();
+        // magic value found after eyeballing the output: it should be
+        // the cycle start
+        if j % jets.len() == 28 {
+            // LOOP !!!
+            // now measure, and hope it repeats at next iteration
+            let height = tower.len() - prev_tower_height;
+            loop_rocks = r - prev_rocks;
+            println!(
+                "loop found at {j} tower is {}, height = {height} {:?} tower was {prev_tower_height}",
+                tower.len(),
+                height.cmp(&prev_height)
+            );
+            if prev_height != height {
+                // no dice, continue
+                prev_height = height;
+                prev_tower_height = tower.len();
+                prev_rocks = r;
+                continue;
+            }
+            break;
+        }
+    }
+    for r in 0..((rounds - r) % loop_rocks) {
+        j += add_rock(&mut tower, &rocks[r % rocks.len()], jets, j);
+    }
+    let remaining_height = tower.len() - prev_tower_height - prev_height;
+
+    prev_tower_height + prev_height * ((rounds - r) / loop_rocks + 1) + remaining_height
 }
 
 impl std::fmt::Display for Tile {
@@ -183,6 +230,6 @@ fn test() {
     let res = simulate(&jets, 2022);
     assert_eq!(res, 3068);
     //part 2
-    // let res = operation2(&jets);
-    // assert_eq!(res, 42);
+    let res = simulate_big(&jets, 1000000000000);
+    assert_eq!(res, 1514285714288);
 }
