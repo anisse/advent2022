@@ -304,11 +304,13 @@ fn max_flow_double(
     budget: u8,
     path_memo: &mut HashMap<(ValveName, ValveName), u8>,
 ) -> usize {
+    /*
     space_indent(budget);
     println!(
         "budget is {budget} from {pos:?}: remain {} :{remaining:?} ",
         remaining.len()
     );
+    */
     match (&pos[0].moving, &pos[1].moving) {
         (None, None) => {
             if pos[0].at != pos[1].at {
@@ -338,11 +340,15 @@ fn max_flow_double_iter(
     budget: u8,
     path_memo: &mut HashMap<(ValveName, ValveName), u8>,
 ) -> usize {
+    /*
     space_indent(budget);
     println!("Iter over {remaining:?} ({})", remaining.len());
+    */
     if remaining.is_empty() && m.cost < budget {
+        /*
         space_indent(budget);
         println!("Exhausting");
+        */
         return flow_exhaust(m, budget);
     }
     let mut max = 0;
@@ -375,8 +381,10 @@ fn max_flow_double_combine_all(
     budget: u8,
     path_memo: &mut HashMap<(ValveName, ValveName), u8>,
 ) -> usize {
+    /*
     space_indent(budget);
     println!("Combining all over {remaining:?} ({})", remaining.len());
+    */
     let mut max = 0;
     for v in (0..remaining.len()).combinations(2) {
         let i = v[0];
@@ -400,8 +408,10 @@ fn max_flow_double_combine(
     budget: u8,
     path_memo: &mut HashMap<(ValveName, ValveName), u8>,
 ) -> usize {
+    /*
     space_indent(budget);
     println!("Combining over {remaining:?} ({})", remaining.len());
+    */
     let mut max = 0;
     for v in (0..remaining.len()).combinations(2) {
         let i = v[0];
