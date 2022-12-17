@@ -11,7 +11,7 @@ fn main() {
     //let res = operation2(&jets);
     //println!("Summary2: {}", res);
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum Tile {
     Stone,
     Space,
@@ -36,9 +36,18 @@ fn rocks() -> Vec<Rock> {
     ]
 }
 
+#[derive(Debug, Clone, Copy)]
 enum Jet {
     Left,
     Right,
+}
+impl Jet {
+    fn dir(&self) -> i8 {
+        match self {
+            Left => -1,
+            Right => 1,
+        }
+    }
 }
 
 fn parse(input: &str) -> Vec<Jet> {
@@ -52,9 +61,119 @@ fn parse(input: &str) -> Vec<Jet> {
         })
         .collect()
 }
+type Tower = Vec<[Tile; 7]>;
+type TowerSlice = [[Tile; 7]];
 fn simulate(jets: &[Jet], rounds: usize) -> usize {
     let rocks = rocks();
-    0
+    let mut tower: Tower = Vec::new();
+    let mut j = 0;
+    for r in 0..rounds {
+        j += add_rock(&mut tower, &rocks[r % rocks.len()], jets, j);
+        //println!("After round {r} in {j} steps:");
+        //print_tower(&tower);
+    }
+    tower.len()
+}
+
+impl std::fmt::Display for Tile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Stone => write!(f, "#"),
+            Space => write!(f, " "),
+        }
+    }
+}
+fn print_tower(t: &TowerSlice) {
+    t.iter().rev().for_each(|l| {
+        l.iter().for_each(|c| print!("{}", c));
+        println!();
+    });
+}
+
+fn add_rock(tower: &mut Tower, rock: &Rock, jets: &[Jet], j_start: usize) -> usize {
+    let mut rock_y = tower.len() + 3;
+    for _ in 0..(3 + rock.len() + 1) {
+        tower.push([Space, Space, Space, Space, Space, Space, Space]);
+    }
+    let mut step = 0;
+    let mut rock_x = 2;
+    loop {
+        let jet = jets[(j_start + step) % jets.len()];
+        if jet_push(jet, rock, rock_x, rock_y, tower) {
+            //println!("Push to {jet:?} OK");
+            rock_x += jet.dir();
+        }
+        step += 1;
+        if rock_fall(rock, rock_x, rock_y, tower) {
+            break;
+        }
+        rock_y -= 1;
+    }
+    // Put rock at coordinates
+    for (y, l) in rock.iter().rev().enumerate() {
+        for (x, c) in l.iter().enumerate() {
+            if *c == Stone {
+                tower[rock_y + y][rock_x as usize + x] = Stone
+            }
+        }
+    }
+    // trim any un-neccessary space
+    while tower[tower.len() - 1].iter().all(|c| *c == Space) {
+        tower.pop();
+    }
+    step
+}
+
+fn rock_width(r: &Rock) -> i8 {
+    r.iter()
+        .map(|l| l.iter().filter(|c| **c == Stone).count())
+        .max()
+        .expect("width") as i8
+}
+
+fn jet_push(jet: Jet, rock: &Rock, rock_x: i8, rock_y: usize, tower: &TowerSlice) -> bool {
+    let width = rock_width(rock) - 1;
+    let new_x = rock_x + jet.dir();
+    if new_x < 0 || (new_x + width) >= tower[0].len() as i8 {
+        //println!("Push to {jet:?} failed because of new_x:={new_x} + width = {width}");
+        return false;
+    }
+    // Now check overlaps with actual tower content
+    !rock_overlap(rock, new_x as usize, rock_y, tower)
+}
+
+fn rock_overlap(rock: &Rock, rock_x: usize, rock_y: usize, tower: &TowerSlice) -> bool {
+    //println!("checking overlap rock at {rock_x}x{rock_y}: {rock:?}");
+    for (y, l) in rock.iter().rev().enumerate() {
+        for (x, c) in l.iter().enumerate() {
+            /*
+            println!(
+                "Checking at {c:?} at  {}x{} =  {rock_x}+{x}x{rock_y}-{y}",
+                rock_x + x,
+                rock_y + y
+            );
+            */
+            if *c == Stone && tower[rock_y + y][rock_x + x] == Stone {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+fn rock_fall(rock: &Rock, rock_x: i8, rock_y: usize, tower: &TowerSlice) -> bool {
+    /*
+    println!(
+        "checking fall of rock at {rock_y} -> {} (bottom: {} -> {})",
+        rock_y as i32 - 1,
+        rock_y as i32 - 1 - rock.len() as i32,
+        rock_y as i32 - rock.len() as i32,
+    );
+    */
+    if rock_y.checked_sub(1).is_none() {
+        return true;
+    }
+    rock_overlap(rock, rock_x as usize, rock_y - 1, tower)
 }
 
 #[test]
