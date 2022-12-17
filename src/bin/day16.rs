@@ -2,12 +2,11 @@ use advent2022::*;
 #[macro_use]
 extern crate scan_fmt;
 
-use std::cmp::min;
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 
-//use crate::Action::*;
+use itertools::Itertools;
 
 fn main() {
     let valves = parse(input!());
@@ -222,7 +221,7 @@ struct Pos {
 impl std::fmt::Display for Pos {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self.moving {
-            Some(m) => write!(f, "in transit to {} ({})", m.dest, m.cost),
+            Some(m) => write!(f, "in transit to {} ({} to get {})", m.dest, m.cost, m.flow),
             None => write!(f, "at {}", self.at),
         }
     }
@@ -248,88 +247,50 @@ fn cost(
     }
 }
 
-fn next_element(
-    pos: &Pos,
-    remaining: &[ValveName],
-    idx: usize,
-    valves: &HashMap<ValveName, Valve>,
-    path_memo: &mut HashMap<(ValveName, ValveName), u8>,
-) -> (ValveName, usize, u8) {
-    if let Some(Movement { dest, flow, cost }) = &pos.moving {
-        (*dest, *flow, *cost)
-    } else {
-        let dest = remaining[idx];
-        let v = valves.get(&dest).expect("some valve");
-        (dest, v.flow, cost(pos.at, dest, valves, path_memo))
-    }
-}
 fn space_indent(budget: u8) {
-    (0..(26 - budget)).for_each(|_| print! {" "});
+    (0..(26 - budget)).for_each(|_| print! {"|"});
 }
 
-fn move_pos(pos: &Pos, dest: ValveName, flow: usize, cost: u8, new_cost: u8) -> Pos {
-    if new_cost == cost {
+fn move_pos(src: ValveName, mov: &Movement, next: bool, new_cost: u8) -> Pos {
+    if next {
         // pos reached
         Pos {
-            at: dest,
+            at: mov.dest,
             moving: None,
         }
     } else {
-        assert!(cost > new_cost);
         Pos {
-            at: pos.at,
+            at: src,
             moving: Some(Movement {
-                dest,
-                flow,
-                cost: cost - new_cost,
+                dest: mov.dest,
+                flow: mov.flow,
+                cost: mov.cost - new_cost - 1,
             }),
         }
     }
 }
 
-fn sub_vec<T>(v: &[T], r: std::ops::RangeInclusive<usize>, removed: usize) -> Vec<T>
-where
-    T: Clone,
-{
-    assert!(r.contains(&removed));
-    assert!(*r.end() < v.len());
-    if *r.start() >= *r.end() {
-        Vec::new()
-    } else if removed == *r.start() {
-        v[(removed + 1)..=*r.end()].to_vec()
-    } else if removed == *r.end() {
-        v[*r.start()..removed].to_vec()
-    } else {
-        let mut v2 = Vec::with_capacity(r.end() - r.start());
-        v2.extend_from_slice(&v[*r.start()..removed]);
-        v2.extend_from_slice(&v[(removed + 1)..=*r.end()]);
-        v2
-    }
-}
 fn sub_vec2<T>(v: &[T], rm1: Option<usize>, rm2: Option<usize>) -> Vec<T>
 where
     T: Clone,
 {
     let mut v2 = v.to_vec();
-    if let Some(r2) = rm2 {
-        v2.swap_remove(r2);
-    }
-    if let Some(r1) = rm1 {
-        v2.swap_remove(r1);
+    match (rm1, rm2) {
+        (None, None) => {}
+        (None, Some(r)) | (Some(r), None) => {
+            v2.swap_remove(r);
+        }
+        (Some(r1), Some(r2)) => {
+            if r1 > r2 {
+                v2.swap_remove(r1);
+                v2.swap_remove(r2);
+            } else {
+                v2.swap_remove(r2);
+                v2.swap_remove(r1);
+            }
+        }
     }
     v2
-}
-
-#[test]
-fn test_sub_vec() {
-    let v = vec![1, 2, 3, 4, 5, 6];
-    assert_eq!(sub_vec(&v, 1..=5, 1), vec![3, 4, 5, 6]);
-    assert_eq!(sub_vec(&v, 0..=5, 1), vec![1, 3, 4, 5, 6]);
-    assert_eq!(sub_vec(&v, 0..=5, 0), vec![2, 3, 4, 5, 6]);
-    assert_eq!(sub_vec(&v, 0..=5, 2), vec![1, 2, 4, 5, 6]);
-    assert_eq!(sub_vec(&v, 0..=3, 3), vec![1, 2, 3]);
-    assert_eq!(sub_vec(&v, 0..=5, 3), vec![1, 2, 3, 5, 6]);
-    assert_eq!(sub_vec(&v, 0..=4, 4), vec![1, 2, 3, 4,]);
 }
 
 fn max_flow_double(
@@ -339,77 +300,191 @@ fn max_flow_double(
     budget: u8,
     path_memo: &mut HashMap<(ValveName, ValveName), u8>,
 ) -> usize {
-    let mut max = 0;
     space_indent(budget);
     println!(
         "budget is {budget} from {pos:?}: remain {} :{remaining:?} ",
         remaining.len()
     );
-    let len = remaining.len();
-    let mut i = 0;
-    while i < len {
-        space_indent(budget);
-        println!("outer: {i} / {len}");
-        let (r, vflow, cost) = next_element(&pos[0], remaining, i, valves, path_memo);
-        let mut j = if pos[0].moving.is_none() { i + 1 } else { 0 };
-        while j < len {
-            let (r_ele, vflow_ele, cost_ele) =
-                next_element(&pos[1], remaining, j, valves, path_memo);
-
-            if cost + 1 >= budget && cost_ele + 1 >= budget {
-                continue;
-            }
-            space_indent(budget);
-            println!("inner: {j} / {len} - comparing {cost} with {cost_ele}");
-            let (next_cost, next_vflow) = if cost <= cost_ele {
-                (cost, vflow)
+    match (&pos[0].moving, &pos[1].moving) {
+        (None, None) => {
+            if pos[0].at != pos[1].at {
+                max_flow_double_combine_all(
+                    valves, pos[0].at, pos[1].at, remaining, budget, path_memo,
+                )
             } else {
-                (cost_ele, vflow_ele)
-            };
-            let (new_budget, flow, new_pos) = (
-                budget - next_cost - 1,
-                next_vflow + if next_cost == cost_ele { vflow_ele } else { 0 },
-                [
-                    move_pos(&pos[0], r, vflow, cost, next_cost),
-                    move_pos(&pos[1], r_ele, vflow_ele, cost_ele, next_cost),
-                ],
-            );
-
-            let next_remain = match (&pos[0].moving, &pos[1].moving) {
-                (None, None) => sub_vec2(remaining, Some(i), Some(j)),
-                (None, Some(_)) => sub_vec2(remaining, Some(i), None),
-                (Some(_), None) => sub_vec2(remaining, None, Some(j)),
-                (Some(_), Some(_)) => unreachable!(),
-            };
-            space_indent(budget);
-            println!("{{{i}, {j}}} / {len}: pos {pos:?}->{new_pos:?} rest: {next_remain:?}");
-            let mflow = max_flow_double(valves, &new_pos, &next_remain, new_budget, path_memo);
-            let new_flow = (new_budget as usize) * flow + mflow;
-            space_indent(budget);
-            println!(
-                "= has flow {new_flow} = {new_budget} * {flow} + {mflow} at step {} with {pos:?}->{new_pos:?}",
-                27 - budget
-            );
-            if new_flow > max {
-                max = new_flow;
-                space_indent(budget);
-                println!("IS MAX ===");
-            }
-            if pos[1].moving.is_some() {
-                break;
-            } else {
-                j += 1;
+                max_flow_double_combine(valves, pos[0].at, pos[1].at, remaining, budget, path_memo)
             }
         }
-        if pos[0].moving.is_some() {
-            break;
-        } else {
-            i += 1;
+        (None, Some(m)) => max_flow_double_iter(
+            valves, pos[0].at, pos[1].at, m, remaining, budget, path_memo,
+        ),
+        (Some(m), None) => max_flow_double_iter(
+            valves, pos[1].at, pos[0].at, m, remaining, budget, path_memo,
+        ),
+        (Some(_), Some(_)) => unreachable!(),
+    }
+}
+
+fn max_flow_double_iter(
+    valves: &HashMap<ValveName, Valve>,
+    at: ValveName,
+    atm: ValveName,
+    m: &Movement,
+    remaining: &[ValveName],
+    budget: u8,
+    path_memo: &mut HashMap<(ValveName, ValveName), u8>,
+) -> usize {
+    space_indent(budget);
+    println!("Iter over {remaining:?} ({})", remaining.len());
+    if remaining.is_empty() && m.cost < budget {
+        space_indent(budget);
+        println!("Exhausting");
+        return flow_exhaust(m, budget);
+    }
+    let mut max = 0;
+    // this could be an iterator...
+    for i in 0..remaining.len() {
+        let dest = remaining[i];
+        let cost = cost(at, dest, valves, path_memo);
+        let flow = valves.get(&dest).expect("valve").flow;
+
+        let new_flow = max_flow_double_pair(
+            valves,
+            &[at, atm],
+            [&Movement { dest, flow, cost }, m],
+            &sub_vec2(remaining, Some(i), None),
+            budget,
+            path_memo,
+        );
+        if new_flow > max {
+            max = new_flow;
         }
     }
-    space_indent(budget);
-    println!("got flow of {max}");
     max
+}
+
+fn max_flow_double_combine_all(
+    valves: &HashMap<ValveName, Valve>,
+    at_1: ValveName,
+    at_2: ValveName,
+    remaining: &[ValveName],
+    budget: u8,
+    path_memo: &mut HashMap<(ValveName, ValveName), u8>,
+) -> usize {
+    space_indent(budget);
+    println!("Combining all over {remaining:?} ({})", remaining.len());
+    let mut max = 0;
+    for v in (0..remaining.len()).combinations(2) {
+        let i = v[0];
+        let j = v[1];
+        let new_flow = flow_pair(valves, at_1, at_2, remaining, i, j, budget, path_memo);
+        if new_flow > max {
+            max = new_flow;
+        }
+        let new_flow = flow_pair(valves, at_1, at_2, remaining, j, i, budget, path_memo);
+        if new_flow > max {
+            max = new_flow;
+        }
+    }
+    max
+}
+fn max_flow_double_combine(
+    valves: &HashMap<ValveName, Valve>,
+    at_1: ValveName,
+    at_2: ValveName,
+    remaining: &[ValveName],
+    budget: u8,
+    path_memo: &mut HashMap<(ValveName, ValveName), u8>,
+) -> usize {
+    space_indent(budget);
+    println!("Combining over {remaining:?} ({})", remaining.len());
+    let mut max = 0;
+    for v in (0..remaining.len()).combinations(2) {
+        let i = v[0];
+        let j = v[1];
+        let new_flow = flow_pair(valves, at_1, at_2, remaining, i, j, budget, path_memo);
+        if new_flow > max {
+            max = new_flow;
+        }
+    }
+    max
+}
+fn flow_pair(
+    valves: &HashMap<ValveName, Valve>,
+    at_1: ValveName,
+    at_2: ValveName,
+    remaining: &[ValveName],
+    i: usize,
+    j: usize,
+    budget: u8,
+    path_memo: &mut HashMap<(ValveName, ValveName), u8>,
+) -> usize {
+    let desti = remaining[i];
+    let costi = cost(at_1, desti, valves, path_memo);
+    let flowi = valves.get(&desti).expect("valve").flow;
+    let destj = remaining[j];
+    let costj = cost(at_1, destj, valves, path_memo);
+    let flowj = valves.get(&destj).expect("valve").flow;
+
+    max_flow_double_pair(
+        valves,
+        &[at_1, at_2],
+        [
+            &Movement {
+                dest: desti,
+                flow: flowi,
+                cost: costi,
+            },
+            &Movement {
+                dest: destj,
+                flow: flowj,
+                cost: costj,
+            },
+        ],
+        &sub_vec2(remaining, Some(i), Some(j)),
+        budget,
+        path_memo,
+    )
+}
+fn max_flow_double_pair(
+    valves: &HashMap<ValveName, Valve>,
+    src: &[ValveName; 2],
+    mov: [&Movement; 2],
+    remaining: &[ValveName],
+    budget: u8,
+    path_memo: &mut HashMap<(ValveName, ValveName), u8>,
+) -> usize {
+    if mov[0].cost + 1 >= budget && mov[1].cost + 1 >= budget {
+        return 0;
+    }
+    let (next, next_cost) = match mov[0].cost.cmp(&mov[1].cost) {
+        std::cmp::Ordering::Less => ([true, false], mov[0].cost),
+        std::cmp::Ordering::Equal => ([true, true], mov[0].cost),
+        std::cmp::Ordering::Greater => ([false, true], mov[1].cost),
+    };
+    let (new_budget, flow, new_pos) = (
+        budget - next_cost - 1,
+        if next[0] { mov[0].flow } else { 0 } + if next[1] { mov[1].flow } else { 0 },
+        [
+            move_pos(src[0], mov[0], next[0], next_cost),
+            move_pos(src[1], mov[1], next[1], next_cost),
+        ],
+    );
+
+    space_indent(budget);
+    println!("pos {src:?}->{new_pos:?} rest: {remaining:?}");
+    let mflow = max_flow_double(valves, &new_pos, remaining, new_budget, path_memo);
+    let new_flow = (new_budget as usize) * flow + mflow;
+    space_indent(budget);
+    println!(
+                "= has flow {new_flow} = {new_budget} * {flow} + {mflow} at step {} with {src:?}->{new_pos:?}",
+                27 - budget
+            );
+    new_flow
+}
+
+fn flow_exhaust(m: &Movement, budget: u8) -> usize {
+    m.flow * (budget as usize - m.cost as usize - 1)
 }
 
 fn path_to_valve(valves: &HashMap<ValveName, Valve>, start: ValveName, target: ValveName) -> u8 {
