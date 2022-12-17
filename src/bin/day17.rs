@@ -77,49 +77,81 @@ fn simulate(jets: &[Jet], rounds: usize) -> usize {
 fn simulate_big(jets: &[Jet], rounds: usize) -> usize {
     let rocks = rocks();
     let mut tower: Tower = Vec::new();
+    let mut j_mod = Vec::new();
     let mut j = 0;
+    let mut rock_count = 0;
     // Attempt to find the "loop" (hoping it exists), this way we know its len, we know how it will
     // repeat, modulo the "big" rounds, simulate the rest, multiply, add and we have the result.
-    //let mut first = true;
-    let mut prev_height = 0;
-    let mut prev_tower_height = 0;
-    //let mut tower_top_match = [Space, Space, Space, Space, Space, Space, Space];
-    let mut r = 0;
-    let mut prev_rocks = 0;
-    let mut loop_rocks;
-    loop {
+    let (start, period, start_height) = loop {
         for r in 0..rocks.len() {
             j += add_rock(&mut tower, &rocks[r % rocks.len()], jets, j);
+            rock_count += 1;
         }
-        r += rocks.len();
-        // magic value found after eyeballing the output: it should be
-        // the cycle start
-        if j % jets.len() == 28 {
-            // LOOP !!!
-            // now measure, and hope it repeats at next iteration
-            let height = tower.len() - prev_tower_height;
-            loop_rocks = r - prev_rocks;
-            println!(
-                "loop found at {j} tower is {}, height = {height} {:?} tower was {prev_tower_height}",
-                tower.len(),
-                height.cmp(&prev_height)
-            );
-            if prev_height != height {
-                // no dice, continue
-                prev_height = height;
-                prev_tower_height = tower.len();
-                prev_rocks = r;
-                continue;
+        //r += rocks.len();
+        j_mod.push(j % jets.len());
+        print!("{} {:?} ", j % jets.len(), cycle_detect(&j_mod));
+        if let Some((start, period)) = cycle_detect(&j_mod) {
+            break (start, period, tower.len());
+        }
+    };
+    println!();
+
+    let period_height = {
+        for _ in 0..period {
+            for r in 0..rocks.len() {
+                j += add_rock(&mut tower, &rocks[r % rocks.len()], jets, j);
+                rock_count += 1;
             }
+        }
+        tower.len() - start_height
+    };
+
+    println!("Got start = {start}, period = {period}, start_height = {start_height}, period_height = {period_height}");
+    let repeat_len = (rounds - rock_count) / (period * rocks.len());
+    let mut res = period_height * repeat_len;
+    let rocks_remain = (rounds - rock_count) % (repeat_len * rocks.len());
+    println!("Repeat len is {repeat_len}; {rocks_remain} rocks remaining");
+    for r in 0..rocks_remain {
+        j += add_rock(&mut tower, &rocks[r % rocks.len()], jets, j);
+    }
+    res += tower.len();
+    res
+}
+
+fn cycle_detect(seq: &[usize]) -> Option<(usize, usize)> {
+    // basic floyd tortoise and hare implementation
+    let mut tor = 0;
+    let mut har = 0;
+    loop {
+        har += 2;
+        tor += 1;
+        if har >= seq.len() || tor >= seq.len() {
+            return None;
+        }
+        if seq[har] == seq[tor] {
             break;
         }
     }
-    for r in 0..((rounds - r) % loop_rocks) {
-        j += add_rock(&mut tower, &rocks[r % rocks.len()], jets, j);
+    let mut mu = 0;
+    tor = 0;
+    while seq[tor] != seq[har] {
+        tor += 1;
+        har += 1;
+        mu += 1;
+        if har >= seq.len() || tor >= seq.len() {
+            return None;
+        }
     }
-    let remaining_height = tower.len() - prev_tower_height - prev_height;
-
-    prev_tower_height + prev_height * ((rounds - r) / loop_rocks + 1) + remaining_height
+    let mut lam = 1;
+    har = tor + 1;
+    while seq[tor] != seq[har] {
+        if har >= seq.len() {
+            return None;
+        }
+        har += 1;
+        lam += 1;
+    }
+    Some((mu, lam))
 }
 
 impl std::fmt::Display for Tile {
