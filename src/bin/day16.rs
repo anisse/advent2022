@@ -12,10 +12,10 @@ fn main() {
     let valves = parse(input!());
     //part 1
     let res = most_30m_pressure(&valves);
-    println!("Summary: {}", res);
+    println!("Max flow in 30m: {}", res);
     //part 2
     let res = max_flow_with_elephant(&valves);
-    println!("Summary2: {}", res);
+    println!("Max flow in 26m with elephant: {}", res);
 }
 
 #[derive(Eq, PartialEq, Hash, Clone, Copy)]
@@ -55,7 +55,7 @@ fn parse(input: &str) -> HashMap<ValveName, Valve> {
     input
         .lines()
         .map(|l| {
-            println!("{}", l);
+            //println!("{}", l);
             let (name, flow, _, _, _, tunnels) = scan_fmt!(
                 l,
                 "Valve {} has flow rate={d}; {} {} to {} {/.*/}{e}",
@@ -109,10 +109,12 @@ fn most_30m_pressure(valves: &HashMap<ValveName, Valve>) -> usize {
         .map(|(name, v)| (*name, v.flow))
         .collect();
 
+    /*
     valves_with_flow.iter().for_each(|(name, flow)| {
         let path = path_to_valve(valves, "AA".into(), *name);
         println!("From AA to reach {name} (flow:{flow}), path has len {path}",);
     });
+    */
     let mut remain: VecDeque<ValveName> = valves_with_flow.iter().map(|(v, _)| *v).collect();
     let mut path_memo = HashMap::new();
 
@@ -125,10 +127,12 @@ fn max_flow_with_elephant(valves: &HashMap<ValveName, Valve>) -> usize {
         .map(|(name, v)| (*name, v.flow))
         .collect();
 
+    /*
     valves_with_flow.iter().for_each(|(name, flow)| {
         let path = path_to_valve(valves, "AA".into(), *name);
         println!("From AA to reach {name} (flow:{flow}), path has len {path}",);
     });
+    */
     let remain: Vec<ValveName> = valves_with_flow.iter().map(|(v, _)| *v).collect();
     let mut path_memo = HashMap::new();
 
