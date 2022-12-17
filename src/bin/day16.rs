@@ -133,7 +133,7 @@ fn max_flow_with_elephant(valves: &HashMap<ValveName, Valve>) -> usize {
         println!("From AA to reach {name} (flow:{flow}), path has len {path}",);
     });
     */
-    let remain: Vec<ValveName> = valves_with_flow.iter().map(|(v, _)| *v).collect();
+    let remain: Vec<ValveName> = valves_with_flow.keys().copied().collect();
     let mut path_memo = HashMap::new();
 
     max_flow_double(
