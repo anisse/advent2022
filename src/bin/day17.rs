@@ -6,10 +6,10 @@ fn main() {
     let jets = parse(input!());
     //part 1
     let res = simulate(&jets, 2022);
-    println!("Summary: {}", res);
+    println!("Height after 2022 rocks: {}", res);
     //part 2
     let res = simulate_big(&jets, 1000000000000);
-    println!("Summary2: {}", res);
+    println!("Height after 1000000000000 rocks: {}", res);
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Tile {
@@ -82,19 +82,17 @@ fn simulate_big(jets: &[Jet], rounds: usize) -> usize {
     let mut rock_count = 0;
     // Attempt to find the "loop" (hoping it exists), this way we know its len, we know how it will
     // repeat, modulo the "big" rounds, simulate the rest, multiply, add and we have the result.
-    let (start, period, start_height) = loop {
+    let (_, period, start_height) = loop {
         for r in 0..rocks.len() {
             j += add_rock(&mut tower, &rocks[r % rocks.len()], jets, j);
             rock_count += 1;
         }
         //r += rocks.len();
         j_mod.push(j % jets.len());
-        print!("{} {:?} ", j % jets.len(), cycle_detect(&j_mod));
         if let Some((start, period)) = cycle_detect(&j_mod) {
             break (start, period, tower.len());
         }
     };
-    println!();
 
     let period_height = {
         for _ in 0..period {
@@ -106,11 +104,11 @@ fn simulate_big(jets: &[Jet], rounds: usize) -> usize {
         tower.len() - start_height
     };
 
-    println!("Got start = {start}, period = {period}, start_height = {start_height}, period_height = {period_height}");
+    //println!("Got start = {start}, period = {period}, start_height = {start_height}, period_height = {period_height}");
     let repeat_len = (rounds - rock_count) / (period * rocks.len());
     let mut res = period_height * repeat_len;
     let rocks_remain = (rounds - rock_count) % (repeat_len * rocks.len());
-    println!("Repeat len is {repeat_len}; {rocks_remain} rocks remaining");
+    //println!("Repeat len is {repeat_len}; {rocks_remain} rocks remaining");
     for r in 0..rocks_remain {
         j += add_rock(&mut tower, &rocks[r % rocks.len()], jets, j);
     }
@@ -162,12 +160,15 @@ impl std::fmt::Display for Tile {
         }
     }
 }
+
+/*
 fn print_tower(t: &TowerSlice) {
     t.iter().rev().for_each(|l| {
         l.iter().for_each(|c| print!("{}", c));
         println!();
     });
 }
+*/
 
 fn add_rock(tower: &mut Tower, rock: &Rock, jets: &[Jet], j_start: usize) -> usize {
     let mut rock_y = tower.len() + 3;
