@@ -213,5 +213,5 @@ fn test() {
     assert_eq!(res, 64);
     //part 2
     let res = unexposed_exterior_surface(&cubes);
-    assert_eq!(res, 59);
+    assert_eq!(res, 58);
 }
