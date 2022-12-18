@@ -12,7 +12,7 @@ fn main() {
 }
 
 type Cube = Vec<u8>;
-type SurfaceIndex = HashMap<(u8, u8, u8), u8>;
+type SurfaceIndex = HashMap<(u8, u8, u8, u8), u8>;
 
 fn parse(input: &str) -> Vec<Cube> {
     input
@@ -20,35 +20,29 @@ fn parse(input: &str) -> Vec<Cube> {
         .map(|l| l.split(',').map(|x| x.parse().expect("not int")).collect())
         .collect()
 }
-fn unexposed_surface_common(cubes: &[Cube]) -> (SurfaceIndex, SurfaceIndex, SurfaceIndex) {
-    let mut surfaces_xy: HashMap<(u8, u8, u8), u8> = HashMap::new();
-    let mut surfaces_xz: HashMap<(u8, u8, u8), u8> = HashMap::new();
-    let mut surfaces_yz: HashMap<(u8, u8, u8), u8> = HashMap::new();
+fn unexposed_surface_common(cubes: &[Cube]) -> SurfaceIndex {
+    let mut surfaces: SurfaceIndex = SurfaceIndex::new();
     for c in cubes.iter() {
         let x = c[0];
         let y = c[1];
         let z = c[2];
-        *surfaces_xy.entry((x, y, z)).or_insert(0) += 1;
-        *surfaces_xy.entry((x, y, z + 1)).or_insert(0) += 1;
-        *surfaces_xz.entry((x, y, z)).or_insert(0) += 1;
-        *surfaces_xz.entry((x, y + 1, z)).or_insert(0) += 1;
-        *surfaces_yz.entry((x, y, z)).or_insert(0) += 1;
-        *surfaces_yz.entry((x + 1, y, z)).or_insert(0) += 1;
+        *surfaces.entry((0, x, y, z)).or_insert(0) += 1;
+        *surfaces.entry((0, x, y, z + 1)).or_insert(0) += 1;
+        *surfaces.entry((1, x, y, z)).or_insert(0) += 1;
+        *surfaces.entry((1, x, y + 1, z)).or_insert(0) += 1;
+        *surfaces.entry((2, x, y, z)).or_insert(0) += 1;
+        *surfaces.entry((2, x + 1, y, z)).or_insert(0) += 1;
     }
-    (surfaces_xy, surfaces_xz, surfaces_yz)
+    surfaces
 }
 fn unexposed_surface(cubes: &[Cube]) -> usize {
-    let (surfaces_xy, surfaces_xz, surfaces_yz) = unexposed_surface_common(cubes);
-    surfaces_xy
-        .values()
-        .chain(surfaces_xz.values())
-        .chain(surfaces_yz.values())
-        .filter(|v| **v == 1)
-        .count()
+    let surfaces = unexposed_surface_common(cubes);
+    surfaces.values().filter(|v| **v == 1).count()
 }
 fn unexposed_exterior_surface(cubes: &[Cube]) -> usize {
-    let (surfaces_xy, surfaces_xz, surfaces_yz) = unexposed_surface_common(cubes);
-    0
+    let surfaces = unexposed_surface_common(cubes);
+    // Lets find a min surface and start iterating from there
+    42
 }
 
 #[test]
