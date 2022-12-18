@@ -7,11 +7,12 @@ fn main() {
     let res = unexposed_surface(&cubes);
     println!("Summary: {}", res);
     //part 2
-    //let res = operation2(&cubes);
-    //println!("Summary2: {}", res);
+    let res = unexposed_exterior_surface(&cubes);
+    println!("Summary2: {}", res);
 }
 
 type Cube = Vec<u8>;
+type SurfaceIndex = HashMap<(u8, u8, u8), u8>;
 
 fn parse(input: &str) -> Vec<Cube> {
     input
@@ -19,7 +20,7 @@ fn parse(input: &str) -> Vec<Cube> {
         .map(|l| l.split(',').map(|x| x.parse().expect("not int")).collect())
         .collect()
 }
-fn unexposed_surface(cubes: &[Cube]) -> usize {
+fn unexposed_surface_common(cubes: &[Cube]) -> (SurfaceIndex, SurfaceIndex, SurfaceIndex) {
     let mut surfaces_xy: HashMap<(u8, u8, u8), u8> = HashMap::new();
     let mut surfaces_xz: HashMap<(u8, u8, u8), u8> = HashMap::new();
     let mut surfaces_yz: HashMap<(u8, u8, u8), u8> = HashMap::new();
@@ -34,12 +35,20 @@ fn unexposed_surface(cubes: &[Cube]) -> usize {
         *surfaces_yz.entry((x, y, z)).or_insert(0) += 1;
         *surfaces_yz.entry((x + 1, y, z)).or_insert(0) += 1;
     }
+    (surfaces_xy, surfaces_xz, surfaces_yz)
+}
+fn unexposed_surface(cubes: &[Cube]) -> usize {
+    let (surfaces_xy, surfaces_xz, surfaces_yz) = unexposed_surface_common(cubes);
     surfaces_xy
         .values()
         .chain(surfaces_xz.values())
         .chain(surfaces_yz.values())
         .filter(|v| **v == 1)
         .count()
+}
+fn unexposed_exterior_surface(cubes: &[Cube]) -> usize {
+    let (surfaces_xy, surfaces_xz, surfaces_yz) = unexposed_surface_common(cubes);
+    0
 }
 
 #[test]
@@ -49,6 +58,6 @@ fn test() {
     let res = unexposed_surface(&cubes);
     assert_eq!(res, 64);
     //part 2
-    // let res = operation2(&cubes);
-    // assert_eq!(res, 42);
+    let res = unexposed_exterior_surface(&cubes);
+    assert_eq!(res, 59);
 }
