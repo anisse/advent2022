@@ -78,30 +78,7 @@ fn parse(input: &str) -> HashMap<ValveName, Valve> {
         .collect()
 }
 
-/*
-#[derive(Debug, Clone)]
-enum Action {
-    Open(ValveName),
-    GoTo(ValveName),
-}
-#[derive(Debug, Clone)]
-struct State {
-    pos: ValveName,
-    //path: Vec<Action>,
-    state: HashMap<ValveName, bool>,
-    flow: usize,
-}
-*/
-
 fn most_30m_pressure(valves: &HashMap<ValveName, Valve>) -> usize {
-    /*
-    let mut state = State {
-        pos: "AA".to_string(),
-        //path: Vec::new(),
-        state: HashMap::new(),
-        flow: 0,
-    };
-    */
     let valves_with_flow: HashMap<ValveName, usize> = valves
         .iter()
         .filter(|(_, v)| v.flow > 0)
@@ -128,7 +105,6 @@ fn max_flow(
     path_memo: &mut HashMap<(ValveName, ValveName), u8>,
 ) -> usize {
     let mut max = 0;
-    //let mut max_through = ValveName::new();
     //print!(" budget is {budget} from {at}: remain {} ", remaining.len());
     for _ in 0..remaining.len() {
         let r = remaining.pop_front().expect("a valve name");
@@ -217,6 +193,7 @@ fn cost(
     }
 }
 
+#[allow(dead_code)]
 fn space_indent(budget: u8) {
     (0..(26 - budget)).for_each(|_| print! {" "});
 }
@@ -238,7 +215,6 @@ fn path_to_valve(valves: &HashMap<ValveName, Valve>, start: ValveName, target: V
             Some(self.cmp(other))
         }
     }
-    //let mut costpath: HashMap<u8, ValveName> = HashMap::new();
     let mut mincost: HashMap<ValveName, u8> = HashMap::new();
     let mut next: BinaryHeap<VNext> = BinaryHeap::new();
 
@@ -252,16 +228,9 @@ fn path_to_valve(valves: &HashMap<ValveName, Valve>, start: ValveName, target: V
                 continue;
             }
         }
-        //costpath.insert(cost, valve);
         mincost.insert(valve, cost);
         if valve == target {
             return cost;
-            /*
-            return (0..=cost)
-                .map(|c| costpath.get(&c).expect("some path"))
-                .map(|v| GoTo(v.to_string()))
-                .collect();
-            */
         }
         for n in valves.get(&valve).expect("some valve").tunnels.iter() {
             next.push(VNext {
@@ -270,7 +239,6 @@ fn path_to_valve(valves: &HashMap<ValveName, Valve>, start: ValveName, target: V
             });
         }
     }
-    //return *mincost.get(&target).unwrap_or(&u8::MAX);
     u8::MAX
 }
 
@@ -283,7 +251,7 @@ fn max_flow_with_elephant_fast(valves: &ValveMap) -> usize {
     let valves_with_flow: Vec<ValveName> = valves
         .iter()
         .filter(|(_, v)| v.flow > 0)
-        .map(|(name, v)| *name)
+        .map(|(name, _)| *name)
         .collect();
     let valve_bits: HashMap<ValveName, u64> = valves_with_flow
         .iter()
@@ -320,6 +288,7 @@ fn max_flow_with_elephant_fast(valves: &ValveMap) -> usize {
         .max()
         .expect("max")
 }
+#[allow(clippy::too_many_arguments)]
 fn flow_all(
     valves: &ValveMap,
     valve_bits: &HashMap<ValveName, u64>,
@@ -331,11 +300,6 @@ fn flow_all(
     state: u64,
     flow: usize,
 ) {
-    /*
-    if matches!(bitflow.get(&state), Some(f)  if *f > flow ) {
-        return;
-    }
-    */
     let f = bitflow.get(&state).unwrap_or(&0);
     bitflow.insert(state, max(*f, flow));
 
@@ -371,26 +335,6 @@ fn flow_all(
         );
     }
 }
-/*
-fn sub_vec<T>(v: &[T], removed: usize) -> Vec<T>
-where
-    T: Clone,
-{
-    assert!(removed < v.len());
-    if v.is_empty() {
-        Vec::new()
-    } else if removed == 0 {
-        v[1..v.len()].to_vec()
-    } else if removed + 1 == v.len() {
-        v[0..removed].to_vec()
-    } else {
-        let mut v2 = Vec::with_capacity(v.len() - 1);
-        v2.extend_from_slice(&v[0..removed]);
-        v2.extend_from_slice(&v[(removed + 1)..(v.len())]);
-        v2
-    }
-}
-*/
 
 #[test]
 fn test() {
