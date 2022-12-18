@@ -7,10 +7,10 @@ fn main() {
     let cubes = parse(input!());
     //part 1
     let res = unexposed_surface(&cubes);
-    println!("Summary: {}", res);
+    println!("Unconnected voxel cube surfaces: {}", res);
     //part 2
     let res = unexposed_exterior_surface(&cubes);
-    println!("Summary2: {}", res);
+    println!("Lava cube external area: {}", res);
 }
 
 type Cube = Vec<u8>;
@@ -247,16 +247,16 @@ fn unexposed_exterior_surface(cubes: &[Cube]) -> usize {
         if seen.get(&s).is_some() {
             continue;
         }
-        println!("Exploring... {s} with o={o}  ");
+        //println!("Exploring... {s} with o={o}  ");
         seen.insert(s.clone());
         for (i, e) in s.adj_edges_iter(o).enumerate() {
-            println!("edge {i}");
+            //println!("edge {i}");
             for adj in e.surfaces_adj() {
-                println!("Surface adjascent of {s} : {adj}");
+                //println!("Surface adjascent of {s} : {adj}");
                 if let Some(os) = surfaces.get(&adj) {
-                    println!("Surface adjascent of {s} : {adj} {}", os[0]);
+                    //println!("Surface adjascent of {s} : {adj} {}", os[0]);
                     if os.len() == 1 {
-                        print_surfaces_advance(&seen, &adj, 0);
+                        //print_surfaces_advance(&seen, &adj, 0);
                         next.push((adj, os[0]));
                         break;
                     }
