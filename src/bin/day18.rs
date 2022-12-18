@@ -1,5 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
+use itertools::Itertools;
+
 use advent2022::*;
 fn main() {
     let cubes = parse(input!());
@@ -19,6 +21,23 @@ struct Surface {
     x: u8,
     y: u8,
     z: u8,
+}
+impl std::fmt::Display for Surface {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}({:2},{:2},{:2})",
+            match self.dim {
+                0 => "X",
+                1 => "Y",
+                2 => "Z",
+                _ => unreachable!(),
+            },
+            self.x,
+            self.y,
+            self.z,
+        )
+    }
 }
 impl Surface {
     fn new(dim: u8, x: u8, y: u8, z: u8) -> Self {
@@ -92,27 +111,31 @@ impl Iterator for EdgeSurfaceIterator {
         if self.count == 4 {
             return None;
         }
-        let n = if self.e.o { self.e.n } else { 2 - self.e.n };
-        Some(match self.count {
-            0 => match n {
+        let x = if self.e.o {
+            self.count - 1
+        } else {
+            3 - self.count
+        };
+        Some(match self.e.n {
+            0 => match x {
                 0 => self.e.s.clone().sc(1, 1).sd(1),
                 1 => self.e.s.clone().sc(1, 1),
                 2 => self.e.s.clone().sc(1, 1).sc(0, -1).sd(1),
                 _ => unreachable!(),
             },
-            1 => match n {
+            1 => match x {
                 0 => self.e.s.clone().sc(2, 1).sd(2),
                 1 => self.e.s.clone().sc(2, 1),
                 2 => self.e.s.clone().sc(2, 1).sc(0, -1).sd(2),
                 _ => unreachable!(),
             },
-            2 => match n {
+            2 => match x {
                 0 => self.e.s.clone().sd(1),
                 1 => self.e.s.clone().sc(1, -1),
                 2 => self.e.s.clone().sc(0, -1).sd(1),
                 _ => unreachable!(),
             },
-            3 => match n {
+            3 => match x {
                 0 => self.e.s.clone().sd(2),
                 1 => self.e.s.clone().sc(2, -1),
                 2 => self.e.s.clone().sc(0, -1).sd(2),
@@ -168,13 +191,42 @@ fn unexposed_surface(cubes: &[Cube]) -> usize {
     let surfaces = unexposed_surface_common(cubes);
     surfaces.values().filter(|v| v.len() == 1).count()
 }
+fn print_surfaces_advance(seen: &HashSet<Surface>, current: &Surface, dim: u8) {
+    if seen.len() <= 1 {
+        return;
+    }
+    let (min_x, max_x) = seen.iter().map(|s| s.x).minmax().into_option().unwrap();
+    let (min_y, max_y) = seen.iter().map(|s| s.y).minmax().into_option().unwrap();
+
+    let surfaces: HashSet<(u8, u8)> = seen
+        .iter()
+        .filter(|s| s.dim == dim)
+        .map(|s| (s.x, s.y))
+        .collect();
+
+    for y in (min_y..=max_y).rev() {
+        for x in min_x..=max_x {
+            if surfaces.get(&(x, y)).is_some() {
+                print!("#");
+            } else {
+                print!(" ");
+            }
+        }
+        println!();
+    }
+}
 fn unexposed_exterior_surface(cubes: &[Cube]) -> usize {
     let surfaces = unexposed_surface_common(cubes);
     // Lets find a min surface and start iterating from there
     let (start, orient) = surfaces
         .iter()
         .filter(|(Surface { dim, .. }, v)| *dim == 0 && v.len() == 1)
-        .min_by(|a, b| a.0.x.cmp(&b.0.x))
+        .min_by(|a, b| {
+            a.0.x
+                .cmp(&b.0.x)
+                .then(a.0.y.cmp(&b.0.y))
+                .then(a.0.z.cmp(&b.0.z))
+        })
         .expect("min");
     /*
     .fold((Surface::new(0, u8::MAX, 0, 0), true), |acc, (s, v)| {
@@ -195,17 +247,16 @@ fn unexposed_exterior_surface(cubes: &[Cube]) -> usize {
         if seen.get(&s).is_some() {
             continue;
         }
-        print!("Exploring... {s:?} with o={o}  ");
+        println!("Exploring... {s} with o={o}  ");
         seen.insert(s.clone());
-        for e in s.adj_edges_iter(o) {
-            print!("edge ");
+        for (i, e) in s.adj_edges_iter(o).enumerate() {
+            println!("edge {i}");
             for adj in e.surfaces_adj() {
+                println!("Surface adjascent of {s} : {adj}");
                 if let Some(os) = surfaces.get(&adj) {
+                    println!("Surface adjascent of {s} : {adj} {}", os[0]);
                     if os.len() == 1 {
-                        println!(
-                            "Unseen before surface adjascent of {s:?} : {adj:?} {}",
-                            os[0]
-                        );
+                        print_surfaces_advance(&seen, &adj, 0);
                         next.push((adj, os[0]));
                         break;
                     }
