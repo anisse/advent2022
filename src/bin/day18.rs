@@ -19,11 +19,10 @@ struct Surface {
     x: u8,
     y: u8,
     z: u8,
-    o: bool,
 }
 impl Surface {
-    fn new(dim: u8, x: u8, y: u8, z: u8, o: bool) -> Self {
-        Surface { dim, x, y, z, o }
+    fn new(dim: u8, x: u8, y: u8, z: u8) -> Self {
+        Surface { dim, x, y, z }
     }
     fn sc(mut self, which: u8, inc: i16) -> Self {
         match (self.dim + which) % 3 {
@@ -38,16 +37,18 @@ impl Surface {
         self.dim = (self.dim + inc) % 3;
         self
     }
-    fn adj_edges_iter(&self) -> EdgeAdjIterator {
+    fn adj_edges_iter(&self, o: bool) -> EdgeAdjIterator {
         EdgeAdjIterator {
             count: 0,
             s: self.clone(),
+            o,
         }
     }
 }
 struct EdgeAdjIterator {
     count: u8,
     s: Surface,
+    o: bool,
 }
 
 impl Iterator for EdgeAdjIterator {
@@ -61,6 +62,7 @@ impl Iterator for EdgeAdjIterator {
         Some(EdgeAdj {
             s: self.s.clone(),
             n: self.count - 1,
+            o: self.o,
         })
     }
 }
@@ -68,6 +70,7 @@ impl Iterator for EdgeAdjIterator {
 struct EdgeAdj {
     s: Surface,
     n: u8,
+    o: bool,
 }
 impl EdgeAdj {
     fn surfaces_adj(&self) -> EdgeSurfaceIterator {
@@ -89,7 +92,7 @@ impl Iterator for EdgeSurfaceIterator {
         if self.count == 4 {
             return None;
         }
-        let n = if self.e.s.o { self.e.n } else { 2 - self.e.n };
+        let n = if self.e.o { self.e.n } else { 2 - self.e.n };
         Some(match self.count {
             0 => match n {
                 0 => self.e.s.clone().sc(1, 1).sd(1),
@@ -120,7 +123,7 @@ impl Iterator for EdgeSurfaceIterator {
     }
 }
 
-type SurfaceIndex = HashMap<Surface, u8>;
+type SurfaceIndex = HashMap<Surface, Vec<bool>>;
 
 fn parse(input: &str) -> Vec<Cube> {
     input
@@ -134,53 +137,78 @@ fn unexposed_surface_common(cubes: &[Cube]) -> SurfaceIndex {
         let x = c[0];
         let y = c[1];
         let z = c[2];
-        *surfaces.entry(Surface::new(0, x, y, z, false)).or_insert(0) += 1;
-        *surfaces
-            .entry(Surface::new(0, x + 1, y, z, true))
-            .or_insert(0) += 1;
-        *surfaces.entry(Surface::new(1, x, y, z, false)).or_insert(0) += 1;
-        *surfaces
-            .entry(Surface::new(1, x, y + 1, z, true))
-            .or_insert(0) += 1;
-        *surfaces.entry(Surface::new(2, x, y, z, false)).or_insert(0) += 1;
-        *surfaces
-            .entry(Surface::new(2, x, y, z + 1, true))
-            .or_insert(0) += 1;
+        surfaces
+            .entry(Surface::new(0, x, y, z))
+            .or_default()
+            .push(false);
+        surfaces
+            .entry(Surface::new(0, x + 1, y, z))
+            .or_default()
+            .push(true);
+        surfaces
+            .entry(Surface::new(1, x, y, z))
+            .or_default()
+            .push(false);
+        surfaces
+            .entry(Surface::new(1, x, y + 1, z))
+            .or_default()
+            .push(true);
+        surfaces
+            .entry(Surface::new(2, x, y, z))
+            .or_default()
+            .push(false);
+        surfaces
+            .entry(Surface::new(2, x, y, z + 1))
+            .or_default()
+            .push(true);
     }
     surfaces
 }
 fn unexposed_surface(cubes: &[Cube]) -> usize {
     let surfaces = unexposed_surface_common(cubes);
-    surfaces.values().filter(|v| **v == 1).count()
+    surfaces.values().filter(|v| v.len() == 1).count()
 }
 fn unexposed_exterior_surface(cubes: &[Cube]) -> usize {
     let surfaces = unexposed_surface_common(cubes);
     // Lets find a min surface and start iterating from there
-    let start = surfaces
+    let (start, orient) = surfaces
         .iter()
-        .filter(|(Surface { dim, .. }, v)| *dim == 0 && **v == 1)
-        .fold(Surface::new(0, u8::MAX, 0, 0, false), |acc, (s, v)| {
-            if s.x < acc.x && *v == 1 {
-                s.clone()
-            } else {
-                acc
-            }
-        });
+        .filter(|(Surface { dim, .. }, v)| *dim == 0 && v.len() == 1)
+        .min_by(|a, b| a.0.x.cmp(&b.0.x))
+        .expect("min");
+    /*
+    .fold((Surface::new(0, u8::MAX, 0, 0), true), |acc, (s, v)| {
+        if s.x < acc.0.x && v.len() == 1 {
+            (s.clone(), v[0])
+        } else {
+            acc
+        }
+    });
+    */
+    assert_eq!(orient.len(), 1);
+    assert!(!orient[0]);
     let mut count = 0;
     let mut seen: HashSet<Surface> = HashSet::new();
-    let mut next: Vec<Surface> = Vec::new();
-    next.push(start);
-    while let Some(s) = next.pop() {
+    let mut next: Vec<(Surface, bool)> = Vec::new();
+    next.push((start.clone(), orient[0]));
+    while let Some((s, o)) = next.pop() {
         if seen.get(&s).is_some() {
             continue;
         }
+        print!("Exploring... {s:?} with o={o}  ");
         seen.insert(s.clone());
-        for e in s.adj_edges_iter() {
+        for e in s.adj_edges_iter(o) {
+            print!("edge ");
             for adj in e.surfaces_adj() {
-                if surfaces.get(&adj) == Some(&1) {
-                    println!("Unseen before surface adjascent of {s:?} : {adj:?}");
-                    next.push(adj);
-                    break;
+                if let Some(os) = surfaces.get(&adj) {
+                    if os.len() == 1 {
+                        println!(
+                            "Unseen before surface adjascent of {s:?} : {adj:?} {}",
+                            os[0]
+                        );
+                        next.push((adj, os[0]));
+                        break;
+                    }
                 }
             }
         }
