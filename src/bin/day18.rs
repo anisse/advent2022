@@ -19,10 +19,11 @@ struct Surface {
     x: u8,
     y: u8,
     z: u8,
+    o: bool,
 }
 impl Surface {
-    fn new(dim: u8, x: u8, y: u8, z: u8) -> Self {
-        Surface { dim, x, y, z }
+    fn new(dim: u8, x: u8, y: u8, z: u8, o: bool) -> Self {
+        Surface { dim, x, y, z, o }
     }
     fn sc(mut self, which: u8, inc: i16) -> Self {
         match (self.dim + which) % 3 {
@@ -43,84 +44,98 @@ impl Surface {
             s: self.clone(),
         }
     }
+    fn adj_edges_iter(&self) -> EdgeAdjIterator {
+        EdgeAdjIterator {
+            count: 0,
+            s: self.clone(),
+        }
+    }
 }
-struct AdjacentSurfaceIterator {
+struct EdgeAdjIterator {
     count: u8,
     s: Surface,
 }
-impl AdjacentSurfaceIterator {
-    fn next_golden_x(&mut self) -> Option<Surface> {
+
+impl Iterator for EdgeAdjIterator {
+    type Item = EdgeAdj;
+
+    fn next(&mut self) -> Option<Self::Item> {
         self.count += 1;
-        if self.count == 12 {
+        if self.count == 4 {
             return None;
         }
-        Some(match self.s.dim {
-            0 => match self.count - 1 {
-                // x dimension, x should NOT vary for same-plan surfaces
-                0 => Surface {
-                    y: self.s.y + 1,
-                    ..self.s
-                },
-                1 => Surface {
-                    y: self.s.y - 1,
-                    ..self.s
-                },
-                2 => Surface {
-                    z: self.s.z - 1,
-                    ..self.s
-                },
-                3 => Surface {
-                    z: self.s.z + 1,
-                    ..self.s
-                },
-                // Plan y surfaces
-                4 => Surface { dim: 1, ..self.s },
-                5 => Surface {
-                    dim: 1,
-                    y: self.s.y + 1,
-                    ..self.s
-                },
-                6 => Surface {
-                    dim: 1,
-                    x: self.s.x - 1,
-                    ..self.s
-                },
-                7 => Surface {
-                    dim: 1,
-                    x: self.s.x - 1,
-                    y: self.s.y + 1,
-                    ..self.s
-                },
-                // Plan z surfaces
-                8 => Surface { dim: 2, ..self.s },
-                9 => Surface {
-                    dim: 2,
-                    z: self.s.z + 1,
-                    ..self.s
-                },
-                10 => Surface {
-                    dim: 2,
-                    x: self.s.x - 1,
-                    ..self.s
-                },
-                11 => Surface {
-                    dim: 2,
-                    x: self.s.x - 1,
-                    z: self.s.z + 1,
-                    ..self.s
-                },
+        Some(EdgeAdj {
+            s: self.s.clone(),
+            n: self.count - 1,
+        })
+    }
+}
+#[derive(Debug, Eq, PartialEq, Hash, Clone)]
+struct EdgeAdj {
+    s: Surface,
+    n: u8,
+}
+impl EdgeAdj {
+    fn surfaces_adj(&self) -> EdgeSurfaceIterator {
+        EdgeSurfaceIterator {
+            e: self.clone(),
+            count: 0,
+        }
+    }
+}
+struct EdgeSurfaceIterator {
+    count: u8,
+    e: EdgeAdj,
+}
+impl Iterator for EdgeSurfaceIterator {
+    type Item = Surface;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.count += 1;
+        if self.count == 4 {
+            return None;
+        }
+        let n = if self.e.s.o { self.e.n } else { 3 - self.e.n };
+        Some(match self.count {
+            0 => match n {
+                0 => self.e.s.clone().sc(1, 1).sd(1),
+                1 => self.e.s.clone().sc(1, 1),
+                2 => self.e.s.clone().sc(1, 1).sc(0, -1).sd(1),
+                _ => unreachable!(),
+            },
+            1 => match n {
+                0 => self.e.s.clone().sc(2, 1).sd(2),
+                1 => self.e.s.clone().sc(2, 1),
+                2 => self.e.s.clone().sc(2, 1).sc(0, -1).sd(2),
+                _ => unreachable!(),
+            },
+            2 => match n {
+                0 => self.e.s.clone().sd(1),
+                1 => self.e.s.clone().sc(1, -1),
+                2 => self.e.s.clone().sc(0, -1).sd(1),
+                _ => unreachable!(),
+            },
+            3 => match n {
+                0 => self.e.s.clone().sd(2),
+                1 => self.e.s.clone().sc(2, -1),
+                2 => self.e.s.clone().sc(0, -1).sd(2),
                 _ => unreachable!(),
             },
             _ => unreachable!(),
         })
     }
 }
+
+struct AdjacentSurfaceIterator {
+    count: u8,
+    s: Surface,
+}
 impl Iterator for AdjacentSurfaceIterator {
     type Item = Surface;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.count += 1;
-        if self.count == 12 {
+        if self.count == 13 {
             return None;
         }
         Some(match self.count - 1 {
@@ -158,12 +173,18 @@ fn unexposed_surface_common(cubes: &[Cube]) -> SurfaceIndex {
         let x = c[0];
         let y = c[1];
         let z = c[2];
-        *surfaces.entry(Surface::new(0, x, y, z)).or_insert(0) += 1;
-        *surfaces.entry(Surface::new(0, x + 1, y, z)).or_insert(0) += 1;
-        *surfaces.entry(Surface::new(1, x, y, z)).or_insert(0) += 1;
-        *surfaces.entry(Surface::new(1, x, y + 1, z)).or_insert(0) += 1;
-        *surfaces.entry(Surface::new(2, x, y, z)).or_insert(0) += 1;
-        *surfaces.entry(Surface::new(2, x, y, z + 1)).or_insert(0) += 1;
+        *surfaces.entry(Surface::new(0, x, y, z, false)).or_insert(0) += 1;
+        *surfaces
+            .entry(Surface::new(0, x + 1, y, z, true))
+            .or_insert(0) += 1;
+        *surfaces.entry(Surface::new(1, x, y, z, false)).or_insert(0) += 1;
+        *surfaces
+            .entry(Surface::new(1, x, y + 1, z, true))
+            .or_insert(0) += 1;
+        *surfaces.entry(Surface::new(2, x, y, z, false)).or_insert(0) += 1;
+        *surfaces
+            .entry(Surface::new(2, x, y, z + 1, true))
+            .or_insert(0) += 1;
     }
     surfaces
 }
@@ -177,7 +198,7 @@ fn unexposed_exterior_surface(cubes: &[Cube]) -> usize {
     let start = surfaces
         .iter()
         .filter(|(Surface { dim, .. }, v)| *dim == 0 && **v == 1)
-        .fold(Surface::new(0, u8::MAX, 0, 0), |acc, (s, v)| {
+        .fold(Surface::new(0, u8::MAX, 0, 0, false), |acc, (s, v)| {
             if s.x < acc.x && *v == 1 {
                 s.clone()
             } else {
@@ -193,12 +214,33 @@ fn unexposed_exterior_surface(cubes: &[Cube]) -> usize {
             continue;
         }
         seen.insert(s.clone());
+        /*
         for adj in s.adjacent() {
             println!("At adjacent surface of {s:?}: {adj:?}");
             if surfaces.get(&adj) == Some(&1) {
                 println!("Unseen before surface adjascent of {s:?} : {adj:?}");
                 next.push(adj);
             }
+        }
+        */
+        for e in s.adj_edges_iter() {
+            /*
+            if e.surfaces_adj()
+                //.filter(|es| *es != s)
+                .map(|es| surfaces.get(&es).unwrap_or(&0))
+                .filter(|c| **c == 1)
+                .count()
+                == 1
+            {
+            */
+            for adj in e.surfaces_adj() {
+                if surfaces.get(&adj) == Some(&1) {
+                    println!("Unseen before surface adjascent of {s:?} : {adj:?}");
+                    next.push(adj);
+                    break;
+                }
+            }
+            //}
         }
         count += 1
     }
