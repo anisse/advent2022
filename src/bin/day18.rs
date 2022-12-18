@@ -38,12 +38,6 @@ impl Surface {
         self.dim = (self.dim + inc) % 3;
         self
     }
-    fn adjacent(&self) -> AdjacentSurfaceIterator {
-        AdjacentSurfaceIterator {
-            count: 0,
-            s: self.clone(),
-        }
-    }
     fn adj_edges_iter(&self) -> EdgeAdjIterator {
         EdgeAdjIterator {
             count: 0,
@@ -95,7 +89,7 @@ impl Iterator for EdgeSurfaceIterator {
         if self.count == 4 {
             return None;
         }
-        let n = if self.e.s.o { self.e.n } else { 3 - self.e.n };
+        let n = if self.e.s.o { self.e.n } else { 2 - self.e.n };
         Some(match self.count {
             0 => match n {
                 0 => self.e.s.clone().sc(1, 1).sd(1),
@@ -121,39 +115,6 @@ impl Iterator for EdgeSurfaceIterator {
                 2 => self.e.s.clone().sc(0, -1).sd(2),
                 _ => unreachable!(),
             },
-            _ => unreachable!(),
-        })
-    }
-}
-
-struct AdjacentSurfaceIterator {
-    count: u8,
-    s: Surface,
-}
-impl Iterator for AdjacentSurfaceIterator {
-    type Item = Surface;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.count += 1;
-        if self.count == 13 {
-            return None;
-        }
-        Some(match self.count - 1 {
-            // x dimension, x should NOT vary for same-plan surfaces
-            0 => self.s.clone().sc(1, 1),
-            1 => self.s.clone().sc(1, -1),
-            2 => self.s.clone().sc(2, 1),
-            3 => self.s.clone().sc(2, -1),
-            // Plan y surfaces
-            4 => self.s.clone().sd(1),
-            5 => self.s.clone().sc(1, 1).sd(1),
-            6 => self.s.clone().sc(0, -1).sd(1),
-            7 => self.s.clone().sc(0, -1).sc(1, 1).sd(1),
-            // Plan z surfaces
-            8 => self.s.clone().sd(2),
-            9 => self.s.clone().sc(2, 1).sd(2),
-            10 => self.s.clone().sc(0, -1).sd(2),
-            11 => self.s.clone().sc(2, 1).sc(0, -1).sd(2),
             _ => unreachable!(),
         })
     }
@@ -214,25 +175,7 @@ fn unexposed_exterior_surface(cubes: &[Cube]) -> usize {
             continue;
         }
         seen.insert(s.clone());
-        /*
-        for adj in s.adjacent() {
-            println!("At adjacent surface of {s:?}: {adj:?}");
-            if surfaces.get(&adj) == Some(&1) {
-                println!("Unseen before surface adjascent of {s:?} : {adj:?}");
-                next.push(adj);
-            }
-        }
-        */
         for e in s.adj_edges_iter() {
-            /*
-            if e.surfaces_adj()
-                //.filter(|es| *es != s)
-                .map(|es| surfaces.get(&es).unwrap_or(&0))
-                .filter(|c| **c == 1)
-                .count()
-                == 1
-            {
-            */
             for adj in e.surfaces_adj() {
                 if surfaces.get(&adj) == Some(&1) {
                     println!("Unseen before surface adjascent of {s:?} : {adj:?}");
@@ -240,7 +183,6 @@ fn unexposed_exterior_surface(cubes: &[Cube]) -> usize {
                     break;
                 }
             }
-            //}
         }
         count += 1
     }
