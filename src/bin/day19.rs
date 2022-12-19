@@ -141,6 +141,8 @@ fn quality_levels(blueprints: &[Blueprint], l: u8) -> usize {
                 &mut max,
             )
         })
+        .enumerate()
+        .map(|(i, m)| (i + 1) * m)
         .sum()
 }
 
@@ -157,14 +159,14 @@ fn ore_equivalent(b: &Blueprint, s: &State) -> usize {
         }
         ore_equiv[i] = cost;
     }
-    println!("{ore_equiv:?}");
+    //println!("{ore_equiv:?}");
     let robots_equiv: usize = s
         .robots
         .iter()
         .enumerate()
         .map(|(i, ro)| ore_equiv[i] * s.budget as usize * *ro as usize)
         .sum();
-    ore_equiv[Ore as usize] = 1;
+    //ore_equiv[Ore as usize] = 1;
     let resources_equiv: usize = s
         .resources
         .iter()
@@ -189,12 +191,16 @@ fn quality_level(b: &Blueprint, s: State, max_ore_equivalent: &mut Vec<usize>) -
         return default;
     }
     let oe = ore_equivalent(b, &s);
+    /*
     space_indent(s.budget, 24);
     println!(
         "{s} OE is {oe}, max {}",
         max_ore_equivalent[s.budget as usize]
     );
-    if max_ore_equivalent[s.budget as usize] > oe * 5 / 3 {
+    */
+    if max_ore_equivalent[s.budget as usize] > (f64::powf(oe as f64, 1.2) as usize)
+    /* * 7 / 4 */
+    {
         return default;
     }
     if max_ore_equivalent[s.budget as usize] < oe {
@@ -246,11 +252,13 @@ fn quality_level(b: &Blueprint, s: State, max_ore_equivalent: &mut Vec<usize>) -
             b[i].cost
                 .iter()
                 .for_each(|c| new_s.resources[c.res as usize] -= c.n);
+            /*
             space_indent(s.budget, 24);
             println!(
                 "{s} producing {:?} for {cost} -> {new_s}",
                 Resource::from(i)
             );
+            */
             quality_level(b, new_s, max_ore_equivalent)
         })
         .max()
@@ -262,7 +270,7 @@ fn test() {
     let blueprints = parse(sample!());
     //part 1
     assert_eq!(quality_levels(&blueprints[0..1], 24), 9, "BP 1");
-    assert_eq!(quality_levels(&blueprints[1..], 24), 24, "BP 2");
+    assert_eq!(quality_levels(&blueprints[1..], 24), 12, "BP 2");
     assert_eq!(quality_levels(&blueprints, 24), 33, "both BP");
     //part 2
     // let res = operation2(&blueprints);
