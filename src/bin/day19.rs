@@ -32,20 +32,17 @@ fn parse(input: &str) -> Vec<Blueprint> {
         ).expect("parse error");
         [
             Robot{
-                t: Ore,
                 cost: vec![Unit{
                     res: Ore,
                     n: ore_ore
                 }],
             },
             Robot{
-                t: Clay,
                 cost: vec![Unit{
                     res: Ore,
                     n: clay_ore}],
             },
             Robot{
-                t: Obsidian,
                 cost: vec![
                     Unit{
                     res: Ore,
@@ -58,7 +55,6 @@ fn parse(input: &str) -> Vec<Blueprint> {
                 ],
             },
             Robot{
-                t: Geode,
                 cost: vec![
                     Unit{
                     res: Ore,
@@ -103,7 +99,6 @@ struct Unit {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 struct Robot {
-    t: Resource,
     cost: Vec<Unit>,
 }
 
