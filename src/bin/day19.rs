@@ -21,7 +21,8 @@ fn parse(input: &str) -> Vec<Blueprint> {
     input.lines().map(|b|  {
         let (_, ore_ore, clay_ore, obs_ore, obs_clay, geo_ore, geo_obs) = scan_fmt!(
             b,
-            "Blueprint {}: Each ore robot costs {} ore. Each clay robot costs {} ore. Each obsidian robot costs {} ore and {} clay. Each geode robot costs {} ore and {} obsidian.",
+            "Blueprint {}: Each ore robot costs {} ore. Each clay robot costs {} ore. \
+            Each obsidian robot costs {} ore and {} clay. Each geode robot costs {} ore and {} obsidian.",
             String,
             u8,
             u8,
