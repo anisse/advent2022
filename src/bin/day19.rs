@@ -134,9 +134,13 @@ fn max_geodes(b: &Blueprint, s: State) -> usize {
     if s.budget == 0 {
         return default;
     }
+    let mut stop = false;
     (0..4)
         .rev()
         .map(|i| {
+            if stop {
+                return default;
+            }
             let (empty, enough) = b
                 .iter()
                 .flat_map(|r| {
@@ -185,6 +189,9 @@ fn max_geodes(b: &Blueprint, s: State) -> usize {
                 + 1;
             if cost >= s.budget {
                 return default;
+            }
+            if i == Geode as usize && cost == 1 {
+                stop = true;
             }
             let mut new_robots = s.robots;
             new_robots[i] += 1;
