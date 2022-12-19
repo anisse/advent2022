@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{cmp::max, collections::HashMap};
 
 use advent2022::*;
 
@@ -118,8 +118,10 @@ impl std::fmt::Display for State {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{} minutes remaining: we have {:?} robots and {:?} resources",
-            self.budget, self.robots, self.resources
+            "Minute {}: we have {:?} robots and {:?} resources",
+            25 - self.budget,
+            self.robots,
+            self.resources
         )
     }
 }
@@ -128,7 +130,7 @@ fn quality_levels(blueprints: &[Blueprint], l: u8) -> usize {
     blueprints
         .iter()
         .map(|b| {
-            let mut memo = HashMap::new();
+            let mut max = vec![0; l as usize + 1];
             quality_level(
                 b,
                 State {
@@ -136,43 +138,110 @@ fn quality_levels(blueprints: &[Blueprint], l: u8) -> usize {
                     resources: [0, 0, 0, 0],
                     budget: l,
                 },
-                &mut memo,
+                &mut max,
             )
         })
         .sum()
 }
 
-fn quality_level(b: &Blueprint, mut s: State, seen: &mut HashMap<State, usize>) -> usize {
-    //println!("{s} for {b:?}");
-    if s.budget == 0 {
-        return s.resources[Geode as usize] as usize;
+fn ore_equivalent(b: &Blueprint, s: &State) -> usize {
+    let mut ore_equiv = [0_usize, 0, 0, 0];
+    for (i, r) in b.iter().enumerate() {
+        let mut cost = 0;
+        for c in r.cost.iter() {
+            if c.res == Ore {
+                cost += c.n as usize;
+            } else {
+                cost += ore_equiv[c.res as usize];
+            }
+        }
+        ore_equiv[i] = cost;
     }
-    // Update resources
     s.robots
         .iter()
         .enumerate()
-        .for_each(|(i, ro)| s.resources[i] += ro);
-    //println!("{s}");
+        .map(|(i, ro)| ore_equiv[i] * s.budget as usize * *ro as usize)
+        .sum::<usize>()
+        + s.resources
+            .iter()
+            .enumerate()
+            .map(|(i, res)| {
+                if Resource::from(i) == Ore {
+                    *res as usize
+                } else {
+                    ore_equiv[i] * *res as usize
+                }
+            })
+            .sum::<usize>()
+}
+fn quality_level(b: &Blueprint, s: State, max_ore_equivalent: &mut Vec<usize>) -> usize {
+    //println!("{s} for {b:?}");
+    if s.budget == 0 {
+        return s.resources[Geode as usize] as usize + s.robots[Geode as usize] as usize;
+    }
+    let oe = ore_equivalent(b, &s);
+    space_indent(s.budget, 24);
+    println!(
+        "{s} OE is {oe}, max {}",
+        max_ore_equivalent[s.budget as usize]
+    );
+    if max_ore_equivalent[s.budget as usize] > oe {
+        return s.resources[Geode as usize] as usize
+            + s.robots[Geode as usize] as usize * s.budget as usize;
+    }
+    max_ore_equivalent[s.budget as usize] = oe;
     (0..4)
         .rev()
         .map(|i| {
-            let mut new_robots = s.robots;
             // can we produce robot r ?
-            if b[i].cost.iter().all(|c| c.n < s.resources[c.res as usize]) {
-                new_robots[i] += 1;
+            // we have one of each robot of its resources
+            if b[i].cost.iter().any(|c| s.robots[c.res as usize] == 0) {
+                // Otherwise no point in continuing
+                return 0;
             }
-            let new_s = State {
-                budget: s.budget - 1,
+            // With no other action, what is the time to produce this robot ?
+            let cost = b[i]
+                .cost
+                .iter()
+                .map(|c| {
+                    if s.resources[c.res as usize] >= c.n {
+                        0
+                    } else {
+                        let a = (c.n - s.resources[c.res as usize]) as u16;
+                        let b = (s.robots[c.res as usize]) as u16;
+                        //ceil div
+                        ((a + b - 1) / b) as u8
+                    }
+                })
+                .max()
+                .expect("max")
+                + 1;
+            if cost >= s.budget {
+                return 0;
+            }
+            let mut new_robots = s.robots;
+            new_robots[i] += 1;
+            let mut new_s = State {
+                budget: s.budget - cost,
                 robots: new_robots,
                 resources: s.resources,
             };
-            if let Some(quality) = seen.get(&new_s) {
-                *quality
-            } else {
-                let q = quality_level(b, new_s.clone(), seen);
-                seen.insert(new_s, q);
-                q
-            }
+            // Update next resources
+            (0..cost).for_each(|_| {
+                s.robots
+                    .iter()
+                    .enumerate()
+                    .for_each(|(r, ro)| new_s.resources[r] += ro)
+            });
+            b[i].cost
+                .iter()
+                .for_each(|c| new_s.resources[c.res as usize] -= c.n);
+            space_indent(s.budget, 24);
+            println!(
+                "{s} producing {:?} for {cost} -> {new_s}",
+                Resource::from(i)
+            );
+            quality_level(b, new_s, max_ore_equivalent)
         })
         .max()
         .expect("max")

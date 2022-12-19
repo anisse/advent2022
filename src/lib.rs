@@ -24,3 +24,7 @@ macro_rules! input {
         ))
     };
 }
+
+pub fn space_indent(recursion_level: u8, max: u8) {
+    (0..(max - recursion_level)).for_each(|_| print! {" "});
+}
