@@ -32,39 +32,16 @@ fn parse(input: &str) -> Vec<Blueprint> {
         ).expect("parse error");
         [
             Robot{
-                cost: vec![Unit{
-                    res: Ore,
-                    n: ore_ore
-                }],
+                cost: [ore_ore, 0, 0],
             },
             Robot{
-                cost: vec![Unit{
-                    res: Ore,
-                    n: clay_ore}],
+                cost: [clay_ore, 0, 0],
             },
             Robot{
-                cost: vec![
-                    Unit{
-                    res: Ore,
-                    n: obs_ore,
-                    },
-                    Unit{
-                    res: Clay,
-                    n: obs_clay,
-                    },
-                ],
+                cost: [obs_ore, obs_clay, 0],
             },
             Robot{
-                cost: vec![
-                    Unit{
-                    res: Ore,
-                    n: geo_ore,
-                    },
-                    Unit{
-                    res: Obsidian,
-                    n: geo_obs,
-                    },
-                ],
+                cost: [geo_ore, 0, geo_obs],
             },
 
         ]
@@ -92,14 +69,8 @@ impl From<usize> for Resource {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-struct Unit {
-    res: Resource,
-    n: u8,
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
 struct Robot {
-    cost: Vec<Unit>,
+    cost: [u8; 3],
 }
 
 type Blueprint = [Robot; 4];
@@ -167,7 +138,14 @@ fn max_geodes(b: &Blueprint, s: State) -> usize {
         .map(|i| {
             let (empty, enough) = b
                 .iter()
-                .flat_map(|r| r.cost.iter().filter(|c| c.res as usize == i).map(|c| c.n))
+                .flat_map(|r| {
+                    r.cost
+                        .iter()
+                        .enumerate()
+                        .filter(|(res, _)| *res == i)
+                        .filter(|(_, n)| **n > 0)
+                        .map(|(_, n)| *n)
+                })
                 .fold((true, true), |acc, n| (false, acc.1 && s.robots[i] >= n));
             if !empty && enough {
                 // No need to produce any more of this: we already have more per turn than any
@@ -176,7 +154,13 @@ fn max_geodes(b: &Blueprint, s: State) -> usize {
             }
             // can we produce robot r ?
             // we have one of each robot of its resources
-            if b[i].cost.iter().any(|c| s.robots[c.res as usize] == 0) {
+            if b[i]
+                .cost
+                .iter()
+                .enumerate()
+                .filter(|(_, n)| **n > 0)
+                .any(|(res, _)| s.robots[res] == 0)
+            {
                 // Otherwise no point in continuing
                 return default;
             }
@@ -184,12 +168,13 @@ fn max_geodes(b: &Blueprint, s: State) -> usize {
             let cost = b[i]
                 .cost
                 .iter()
-                .map(|c| {
-                    if s.resources[c.res as usize] >= c.n {
+                .enumerate()
+                .map(|(res, n)| {
+                    if s.resources[res] >= *n {
                         0
                     } else {
-                        let a = (c.n - s.resources[c.res as usize]) as u16;
-                        let b = (s.robots[c.res as usize]) as u16;
+                        let a = (n - s.resources[res]) as u16;
+                        let b = (s.robots[res]) as u16;
                         //ceil div
                         ((a + b - 1) / b) as u8
                     }
@@ -216,7 +201,8 @@ fn max_geodes(b: &Blueprint, s: State) -> usize {
             });
             b[i].cost
                 .iter()
-                .for_each(|c| new_s.resources[c.res as usize] -= c.n);
+                .enumerate()
+                .for_each(|(res, n)| new_s.resources[res] -= n);
             /*
             space_indent(s.budget, 24);
             println!(
