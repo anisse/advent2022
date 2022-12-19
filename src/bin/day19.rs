@@ -1,7 +1,4 @@
-use std::{
-    cmp::max,
-    time::{Duration, Instant},
-};
+use std::time::{Duration, Instant};
 
 use advent2022::*;
 
@@ -133,7 +130,6 @@ fn max_geodes_product(blueprints: &[Blueprint], l: u8) -> usize {
     blueprints
         .iter()
         .map(|b| {
-            let mut max = vec![MaxState::default(); l as usize + 1];
             max_geodes(
                 b,
                 State {
@@ -141,7 +137,6 @@ fn max_geodes_product(blueprints: &[Blueprint], l: u8) -> usize {
                     resources: [0, 0, 0, 0],
                     budget: l,
                 },
-                &mut max,
             )
         })
         .product()
@@ -150,7 +145,6 @@ fn quality_levels(blueprints: &[Blueprint], l: u8) -> usize {
     blueprints
         .iter()
         .map(|b| {
-            let mut max = vec![MaxState::default(); l as usize + 1];
             max_geodes(
                 b,
                 State {
@@ -158,7 +152,6 @@ fn quality_levels(blueprints: &[Blueprint], l: u8) -> usize {
                     resources: [0, 0, 0, 0],
                     budget: l,
                 },
-                &mut max,
             )
         })
         .enumerate()
@@ -166,109 +159,25 @@ fn quality_levels(blueprints: &[Blueprint], l: u8) -> usize {
         .sum()
 }
 
-fn ore_equivalent(b: &Blueprint, s: &State) -> (usize, usize) {
-    let mut ore_equiv = [0_usize, 0, 0, 0];
-    for (i, r) in b.iter().enumerate() {
-        let mut cost = 0;
-        for c in r.cost.iter() {
-            if c.res == Ore {
-                cost += c.n as usize;
-            } else {
-                cost += ore_equiv[c.res as usize] * c.n as usize;
-            }
-        }
-        ore_equiv[i] = cost;
-    }
-    //println!("{ore_equiv:?}");
-    let robots_equiv: usize = s
-        .robots
-        .iter()
-        .enumerate()
-        .map(|(i, ro)| ore_equiv[i] * s.budget as usize * *ro as usize)
-        .sum();
-    //ore_equiv[Ore as usize] = 1;
-    let resources_equiv: usize = s
-        .resources
-        .iter()
-        .enumerate()
-        .map(|(i, res)| {
-            /*
-            if Resource::from(i) == Ore {
-                *res as usize
-            } else {
-            */
-            ore_equiv[i] * *res as usize
-            //}
-        })
-        .sum();
-    (robots_equiv, resources_equiv)
-}
-#[derive(Default, Eq, PartialEq, Clone)]
-struct MaxState {
-    robots: [u8; 4],
-    resources: [u8; 4],
-}
-impl std::cmp::PartialOrd for MaxState {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        if self == other {
-            return Some(std::cmp::Ordering::Equal);
-        }
-        if self
-            .robots
-            .iter()
-            //.chain(self.resources.iter())
-            .zip(other.robots.iter() /*.chain(other.resources.iter())*/)
-            .all(|(a, b)| a > b)
-        {
-            return Some(std::cmp::Ordering::Greater);
-        }
-        if self
-            .robots
-            .iter()
-            //.chain(self.resources.iter())
-            .zip(other.robots.iter() /*.chain(other.resources.iter())*/)
-            .any(|(a, b)| a < b)
-        {
-            return Some(std::cmp::Ordering::Less);
-        }
-        None
-    }
-}
-impl MaxState {
-    fn merge(&mut self, other: MaxState) {
-        self.robots
-            .iter_mut()
-            .chain(self.resources.iter_mut())
-            .zip(other.robots.iter().chain(other.resources.iter()))
-            .for_each(|(a, b)| {
-                if *a > *b {
-                    *a = *b
-                }
-            });
-    }
-}
-fn max_geodes(b: &Blueprint, s: State, max_state: &mut Vec<MaxState>) -> usize {
+fn max_geodes(b: &Blueprint, s: State) -> usize {
     //println!("{s} for {b:?}");
     let default = s.resources[Geode as usize] as usize
         + s.robots[Geode as usize] as usize * (s.budget as usize);
     if s.budget == 0 {
         return default;
     }
-    //let oe = ore_equivalent(b, &s);
-    let ms = MaxState {
-        robots: s.robots,
-        resources: s.resources,
-    };
-    /*
-    let max_s = &mut max_state[s.budget as usize];
-    if max_s.should_stop
-        return default;
-    }
-    */
-    //*moe = (max(moe.0, oe.0), max(moe.1, oe.1), max(moe.2, default));
     (0..4)
         .rev()
         .map(|i| {
+            let (empty, enough) = b
+                .iter()
+                .flat_map(|r| r.cost.iter().filter(|c| c.res as usize == i).map(|c| c.n))
+                .fold((true, true), |acc, n| (false, acc.1 && s.robots[i] >= n));
+            if !empty && enough {
+                // No need to produce any more of this: we already have more per turn than any
+                // robots need
+                return default;
+            }
             // can we produce robot r ?
             // we have one of each robot of its resources
             if b[i].cost.iter().any(|c| s.robots[c.res as usize] == 0) {
@@ -319,7 +228,7 @@ fn max_geodes(b: &Blueprint, s: State, max_state: &mut Vec<MaxState>) -> usize {
                 Resource::from(i)
             );
             */
-            max_geodes(b, new_s, max_state)
+            max_geodes(b, new_s)
         })
         .max()
         .expect("max")
