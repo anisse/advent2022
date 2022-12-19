@@ -198,7 +198,7 @@ fn quality_level(b: &Blueprint, s: State, max_ore_equivalent: &mut Vec<usize>) -
         max_ore_equivalent[s.budget as usize]
     );
     */
-    if max_ore_equivalent[s.budget as usize] > (f64::powf(oe as f64, 1.2) as usize)
+    if max_ore_equivalent[s.budget as usize] > (f64::powf(oe as f64, 1.1147) as usize)
     /* * 7 / 4 */
     {
         return default;
@@ -272,6 +272,8 @@ fn test() {
     assert_eq!(quality_levels(&blueprints[0..1], 24), 9, "BP 1");
     assert_eq!(quality_levels(&blueprints[1..], 24), 12, "BP 2");
     assert_eq!(quality_levels(&blueprints, 24), 33, "both BP");
+    let input_blue = parse(input!());
+    assert_eq!(quality_levels(&input_blue, 24), 2301, "input BP");
     //part 2
     // let res = operation2(&blueprints);
     // assert_eq!(res, 42);
