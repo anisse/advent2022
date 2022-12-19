@@ -1,3 +1,5 @@
+use std::cmp::max;
+
 use advent2022::*;
 
 #[macro_use]
@@ -11,7 +13,7 @@ fn main() {
     let res = quality_levels(&blueprints, 24);
     println!("Summary: {}", res);
     //part 2
-    let res = quality_levels_p2(&blueprints[0..3], 32);
+    let res = max_geodes_product(&blueprints[0..3], 32);
     println!("Summary2: {}", res);
 }
 fn parse(input: &str) -> Vec<Blueprint> {
@@ -124,12 +126,12 @@ impl std::fmt::Display for State {
     }
 }
 
-fn quality_levels_p2(blueprints: &[Blueprint], l: u8) -> usize {
+fn max_geodes_product(blueprints: &[Blueprint], l: u8) -> usize {
     blueprints
         .iter()
         .map(|b| {
-            let mut max = vec![0; l as usize + 1];
-            quality_level(
+            let mut max = vec![(0, 0, 0); l as usize + 1];
+            max_geodes(
                 b,
                 State {
                     robots: [1, 0, 0, 0],
@@ -145,8 +147,8 @@ fn quality_levels(blueprints: &[Blueprint], l: u8) -> usize {
     blueprints
         .iter()
         .map(|b| {
-            let mut max = vec![0; l as usize + 1];
-            quality_level(
+            let mut max = vec![(0, 0, 0); l as usize + 1];
+            max_geodes(
                 b,
                 State {
                     robots: [1, 0, 0, 0],
@@ -161,7 +163,7 @@ fn quality_levels(blueprints: &[Blueprint], l: u8) -> usize {
         .sum()
 }
 
-fn ore_equivalent(b: &Blueprint, s: &State) -> usize {
+fn ore_equivalent(b: &Blueprint, s: &State) -> (usize, usize) {
     let mut ore_equiv = [0_usize, 0, 0, 0];
     for (i, r) in b.iter().enumerate() {
         let mut cost = 0;
@@ -196,9 +198,13 @@ fn ore_equivalent(b: &Blueprint, s: &State) -> usize {
             //}
         })
         .sum();
-    robots_equiv + resources_equiv
+    (robots_equiv, resources_equiv)
 }
-fn quality_level(b: &Blueprint, s: State, max_ore_equivalent: &mut Vec<usize>) -> usize {
+fn max_geodes(
+    b: &Blueprint,
+    s: State,
+    max_ore_equivalent: &mut Vec<(usize, usize, usize)>,
+) -> usize {
     //println!("{s} for {b:?}");
     let default = s.resources[Geode as usize] as usize
         + s.robots[Geode as usize] as usize * (s.budget as usize);
@@ -206,21 +212,11 @@ fn quality_level(b: &Blueprint, s: State, max_ore_equivalent: &mut Vec<usize>) -
         return default;
     }
     let oe = ore_equivalent(b, &s);
-    /*
-    space_indent(s.budget, 24);
-    println!(
-        "{s} OE is {oe}, max {}",
-        max_ore_equivalent[s.budget as usize]
-    );
-    */
-    if max_ore_equivalent[s.budget as usize] > (f64::powf(oe as f64, 1.1147) as usize)
-    /* * 7 / 4 */
-    {
+    let moe = &mut max_ore_equivalent[s.budget as usize];
+    if moe.0 > oe.0 && moe.1 > oe.1 && moe.2 > default {
         return default;
     }
-    if max_ore_equivalent[s.budget as usize] < oe {
-        max_ore_equivalent[s.budget as usize] = oe;
-    }
+    *moe = (max(moe.0, oe.0), max(moe.1, oe.1), max(moe.2, default));
     (0..4)
         .rev()
         .map(|i| {
@@ -274,7 +270,7 @@ fn quality_level(b: &Blueprint, s: State, max_ore_equivalent: &mut Vec<usize>) -
                 Resource::from(i)
             );
             */
-            quality_level(b, new_s, max_ore_equivalent)
+            max_geodes(b, new_s, max_ore_equivalent)
         })
         .max()
         .expect("max")
@@ -285,14 +281,17 @@ fn test() {
     let blueprints = parse(sample!());
     //part 1
     assert_eq!(quality_levels(&blueprints[0..1], 24), 9, "BP 1");
+    println!("P1 BP1 done");
     assert_eq!(quality_levels(&blueprints[1..], 24), 12, "BP 2");
+    println!("P1 BP2 done");
     assert_eq!(quality_levels(&blueprints, 24), 33, "both BP");
     let input_blue = parse(input!());
     assert_eq!(quality_levels(&input_blue, 24), 2301, "input BP");
+    println!("input done");
     //part 2
     assert_eq!(quality_levels(&blueprints[0..1], 32), 56, "Part 2 BP 1");
     println!("P2 BP 1 done");
     assert_eq!(quality_levels(&blueprints[1..], 32), 62, "Part 2 BP 2");
     println!("P2 BP 2 done");
-    assert_eq!(quality_levels_p2(&blueprints, 32), 62 * 56, "P2 both BP");
+    assert_eq!(max_geodes_product(&blueprints, 32), 62 * 56, "P2 both BP");
 }
