@@ -1,4 +1,5 @@
-use std::time::{Duration, Instant};
+#[cfg(test)]
+use std::time::Instant;
 
 use advent2022::*;
 
