@@ -1,5 +1,3 @@
-use std::{cmp::max, collections::HashMap};
-
 use advent2022::*;
 
 #[macro_use]
@@ -13,8 +11,8 @@ fn main() {
     let res = quality_levels(&blueprints, 24);
     println!("Summary: {}", res);
     //part 2
-    //let res = operation2(&blueprints);
-    //println!("Summary2: {}", res);
+    let res = quality_levels_p2(&blueprints[0..3], 32);
+    println!("Summary2: {}", res);
 }
 fn parse(input: &str) -> Vec<Blueprint> {
     input.lines().map(|b|  {
@@ -126,6 +124,23 @@ impl std::fmt::Display for State {
     }
 }
 
+fn quality_levels_p2(blueprints: &[Blueprint], l: u8) -> usize {
+    blueprints
+        .iter()
+        .map(|b| {
+            let mut max = vec![0; l as usize + 1];
+            quality_level(
+                b,
+                State {
+                    robots: [1, 0, 0, 0],
+                    resources: [0, 0, 0, 0],
+                    budget: l,
+                },
+                &mut max,
+            )
+        })
+        .product()
+}
 fn quality_levels(blueprints: &[Blueprint], l: u8) -> usize {
     blueprints
         .iter()
@@ -275,6 +290,9 @@ fn test() {
     let input_blue = parse(input!());
     assert_eq!(quality_levels(&input_blue, 24), 2301, "input BP");
     //part 2
-    // let res = operation2(&blueprints);
-    // assert_eq!(res, 42);
+    assert_eq!(quality_levels(&blueprints[0..1], 32), 56, "Part 2 BP 1");
+    println!("P2 BP 1 done");
+    assert_eq!(quality_levels(&blueprints[1..], 32), 62, "Part 2 BP 2");
+    println!("P2 BP 2 done");
+    assert_eq!(quality_levels_p2(&blueprints, 32), 62 * 56, "P2 both BP");
 }
