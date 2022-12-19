@@ -152,32 +152,41 @@ fn ore_equivalent(b: &Blueprint, s: &State) -> usize {
             if c.res == Ore {
                 cost += c.n as usize;
             } else {
-                cost += ore_equiv[c.res as usize];
+                cost += ore_equiv[c.res as usize] * c.n as usize;
             }
         }
         ore_equiv[i] = cost;
     }
-    s.robots
+    println!("{ore_equiv:?}");
+    let robots_equiv: usize = s
+        .robots
         .iter()
         .enumerate()
         .map(|(i, ro)| ore_equiv[i] * s.budget as usize * *ro as usize)
-        .sum::<usize>()
-        + s.resources
-            .iter()
-            .enumerate()
-            .map(|(i, res)| {
-                if Resource::from(i) == Ore {
-                    *res as usize
-                } else {
-                    ore_equiv[i] * *res as usize
-                }
-            })
-            .sum::<usize>()
+        .sum();
+    ore_equiv[Ore as usize] = 1;
+    let resources_equiv: usize = s
+        .resources
+        .iter()
+        .enumerate()
+        .map(|(i, res)| {
+            /*
+            if Resource::from(i) == Ore {
+                *res as usize
+            } else {
+            */
+            ore_equiv[i] * *res as usize
+            //}
+        })
+        .sum();
+    robots_equiv + resources_equiv
 }
 fn quality_level(b: &Blueprint, s: State, max_ore_equivalent: &mut Vec<usize>) -> usize {
     //println!("{s} for {b:?}");
+    let default = s.resources[Geode as usize] as usize
+        + s.robots[Geode as usize] as usize * (s.budget as usize);
     if s.budget == 0 {
-        return s.resources[Geode as usize] as usize + s.robots[Geode as usize] as usize;
+        return default;
     }
     let oe = ore_equivalent(b, &s);
     space_indent(s.budget, 24);
@@ -185,11 +194,12 @@ fn quality_level(b: &Blueprint, s: State, max_ore_equivalent: &mut Vec<usize>) -
         "{s} OE is {oe}, max {}",
         max_ore_equivalent[s.budget as usize]
     );
-    if max_ore_equivalent[s.budget as usize] > oe {
-        return s.resources[Geode as usize] as usize
-            + s.robots[Geode as usize] as usize * s.budget as usize;
+    if max_ore_equivalent[s.budget as usize] > oe * 5 / 3 {
+        return default;
     }
-    max_ore_equivalent[s.budget as usize] = oe;
+    if max_ore_equivalent[s.budget as usize] < oe {
+        max_ore_equivalent[s.budget as usize] = oe;
+    }
     (0..4)
         .rev()
         .map(|i| {
@@ -197,7 +207,7 @@ fn quality_level(b: &Blueprint, s: State, max_ore_equivalent: &mut Vec<usize>) -
             // we have one of each robot of its resources
             if b[i].cost.iter().any(|c| s.robots[c.res as usize] == 0) {
                 // Otherwise no point in continuing
-                return 0;
+                return default;
             }
             // With no other action, what is the time to produce this robot ?
             let cost = b[i]
@@ -217,7 +227,7 @@ fn quality_level(b: &Blueprint, s: State, max_ore_equivalent: &mut Vec<usize>) -
                 .expect("max")
                 + 1;
             if cost >= s.budget {
-                return 0;
+                return default;
             }
             let mut new_robots = s.robots;
             new_robots[i] += 1;
@@ -251,8 +261,9 @@ fn quality_level(b: &Blueprint, s: State, max_ore_equivalent: &mut Vec<usize>) -
 fn test() {
     let blueprints = parse(sample!());
     //part 1
-    let res = quality_levels(&blueprints, 24);
-    assert_eq!(res, 33);
+    assert_eq!(quality_levels(&blueprints[0..1], 24), 9, "BP 1");
+    assert_eq!(quality_levels(&blueprints[1..], 24), 24, "BP 2");
+    assert_eq!(quality_levels(&blueprints, 24), 33, "both BP");
     //part 2
     // let res = operation2(&blueprints);
     // assert_eq!(res, 42);
