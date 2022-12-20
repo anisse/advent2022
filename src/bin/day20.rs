@@ -1,20 +1,19 @@
 use advent2022::*;
-use std::collections::VecDeque;
 
 fn main() {
     let numbers = parse(input!());
     //part 1
     let res = decrypt_groove_coord(&numbers);
-    println!("Summary: {}", res);
+    println!("Groove coord after 1 round: {}", res);
     //part 2
     let res = decrypt_groove_coord2(&numbers);
-    println!("Summary2: {}", res);
+    println!("Groove coord after mix + 10 round: {}", res);
 }
 fn parse(input: &str) -> Vec<i64> {
     input.lines().map(|x| x.parse().expect("not int")).collect()
 }
 fn decrypt_groove_coord(numbers: &[i64]) -> i64 {
-    let new = decrypt(numbers);
+    let new = decrypt_rounds(numbers, 1);
     // find 0 ...
     let (zero_pos, _) = new
         .iter()
@@ -42,8 +41,8 @@ fn decrypt_groove_coord2(numbers: &[i64]) -> i64 {
 fn decrypt_rounds(numbers: &[i64], rounds: usize) -> Vec<i64> {
     let mut num = numbers.to_vec();
     let mut order: Vec<_> = (0..numbers.len()).collect();
-    for r in 0..rounds {
-        //println!("\nAt round {r}, order is {order:?}\n");
+    for _r in 0..rounds {
+        //println!("\nAt round {_r}, order is {order:?}\n");
         for k in 0..num.len() {
             // Start again from beginning
             for i in 0..(order.len() as i64) {
@@ -94,117 +93,64 @@ fn decrypt_rounds(numbers: &[i64], rounds: usize) -> Vec<i64> {
     }
     num
 }
-fn decrypt(numbers: &[i64]) -> Vec<i64> {
-    let mut num: Vec<(i64, bool)> = numbers.iter().cloned().map(|n| (n, false)).collect();
-    for _ in 0..num.len() {
-        // Start again from beginning
-        for i in 0_i64..(num.len() as i64) {
-            let (n, moved) = *num.get(i as usize).expect("a number");
-            if moved {
-                continue;
-            }
-            let move_len = num.len() as i64 - 1;
-            let mut nmove = n % (move_len);
-            let mut new_pos = i;
-            // equivalent to new_pos != i
-            if nmove != 0 {
-                if nmove < 0 {
-                    nmove += move_len;
-                }
-                if i + nmove > move_len {
-                    nmove += 1;
-                }
-                new_pos = (i + nmove) % num.len() as i64;
-            }
-            if i == 0 && n != 0 && nmove == 0 {
-                new_pos = move_len;
-            }
-            /*
-            num.iter().for_each(|(x, _)| {
-                print!("{x}");
-                if n == *x {
-                    print!("*")
-                }
-                print!(" ")
-            });
-            println!();
-            println!(
-                "Moving {n} from {i} to {new_pos} \
-                ({n} % {move_len} = {} -> {nmove} ; ({i} + {nmove} % {} = {new_pos})",
-                n % move_len,
-                num.len()
-            );
-            */
-            num.remove(i as usize);
-            num.insert(new_pos as usize, (n, true));
-            break;
-        }
-    }
-    num.iter()
-        .map(|(a, b)| {
-            assert!(b);
-            *a
-        })
-        .collect()
-}
 
 #[test]
 fn test() {
     let numbers = parse(sample!());
     //part 1
-    assert_eq!(decrypt(&numbers), vec![1, 2, -3, 4, 0, 3, -2]);
-    assert_eq!(decrypt(&numbers), vec![1, 2, -3, 4, 0, 3, -2]);
+    assert_eq!(decrypt_rounds(&numbers, 1), vec![1, 2, -3, 4, 0, 3, -2]);
+    assert_eq!(decrypt_rounds(&numbers, 1), vec![1, 2, -3, 4, 0, 3, -2]);
     let res = decrypt_groove_coord(&numbers);
     assert_eq!(res, 3);
     //part 2
     println!();
-    assert_eq!(decrypt(&[3, 0, 1]), vec![0, 1, 3]);
+    assert_eq!(decrypt_rounds(&[3, 0, 1], 1), vec![0, 1, 3]);
     println!();
-    assert_eq!(decrypt(&[0, 7, 1]), vec![0, 7, 1]);
+    assert_eq!(decrypt_rounds(&[0, 7, 1], 1), vec![0, 7, 1]);
     println!();
-    assert_eq!(decrypt(&[-3, 0, 1]), vec![0, 1, -3]);
+    assert_eq!(decrypt_rounds(&[-3, 0, 1], 1), vec![0, 1, -3]);
     println!();
-    assert_eq!(decrypt(&[0, -7, 1]), vec![0, -7, 1]);
+    assert_eq!(decrypt_rounds(&[0, -7, 1], 1), vec![0, -7, 1]);
     println!();
-    assert_eq!(decrypt(&[0, 0, -1]), vec![0, -1, 0]);
+    assert_eq!(decrypt_rounds(&[0, 0, -1], 1), vec![0, -1, 0]);
     println!();
-    assert_eq!(decrypt(&[0, 0, 1]), vec![0, 1, 0]);
+    assert_eq!(decrypt_rounds(&[0, 0, 1], 1), vec![0, 1, 0]);
     println!();
-    assert_eq!(decrypt(&[0, 0, 3]), vec![0, 3, 0]);
+    assert_eq!(decrypt_rounds(&[0, 0, 3], 1), vec![0, 3, 0]);
     println!();
-    assert_eq!(decrypt(&[0, 0, -3]), vec![0, -3, 0]);
+    assert_eq!(decrypt_rounds(&[0, 0, -3], 1), vec![0, -3, 0]);
     println!();
-    assert_eq!(decrypt(&[-1, 0, 0]), vec![0, -1, 0]);
+    assert_eq!(decrypt_rounds(&[-1, 0, 0], 1), vec![0, -1, 0]);
     println!();
-    assert_eq!(decrypt(&[-2, 0, 0]), vec![0, 0, -2]);
+    assert_eq!(decrypt_rounds(&[-2, 0, 0], 1), vec![0, 0, -2]);
     println!();
-    assert_eq!(decrypt(&[-4, 0, 0]), vec![0, 0, -4]);
+    assert_eq!(decrypt_rounds(&[-4, 0, 0], 1), vec![0, 0, -4]);
     println!();
-    assert_eq!(decrypt(&[-2, 0, 0, 0]), vec![0, -2, 0, 0]);
+    assert_eq!(decrypt_rounds(&[-2, 0, 0, 0], 1), vec![0, -2, 0, 0]);
     println!();
-    assert_eq!(decrypt(&[-3, 0, 0, 0]), vec![0, 0, 0, -3]);
+    assert_eq!(decrypt_rounds(&[-3, 0, 0, 0], 1), vec![0, 0, 0, -3]);
     println!();
-    assert_eq!(decrypt(&[2, 0, 0]), vec![0, 0, 2]);
+    assert_eq!(decrypt_rounds(&[2, 0, 0], 1), vec![0, 0, 2]);
     println!();
-    assert_eq!(decrypt(&[2, 0, 0, 0]), vec![0, 0, 2, 0]);
+    assert_eq!(decrypt_rounds(&[2, 0, 0, 0], 1), vec![0, 0, 2, 0]);
     println!();
-    assert_eq!(decrypt(&[3, 0, 0, 0]), vec![0, 0, 0, 3]);
+    assert_eq!(decrypt_rounds(&[3, 0, 0, 0], 1), vec![0, 0, 0, 3]);
     println!();
-    assert_eq!(decrypt(&[4, 0, 0, 0]), vec![0, 4, 0, 0]);
+    assert_eq!(decrypt_rounds(&[4, 0, 0, 0], 1), vec![0, 4, 0, 0]);
     println!();
-    assert_eq!(decrypt(&[3, 0, 0]), vec![0, 3, 0]);
+    assert_eq!(decrypt_rounds(&[3, 0, 0], 1), vec![0, 3, 0]);
     println!();
-    assert_eq!(decrypt(&[-3, 0, 0]), vec![0, -3, 0]);
+    assert_eq!(decrypt_rounds(&[-3, 0, 0], 1), vec![0, -3, 0]);
     println!();
-    assert_eq!(decrypt(&[0, 0, 0, 3]), vec![0, 0, 0, 3]);
+    assert_eq!(decrypt_rounds(&[0, 0, 0, 3], 1), vec![0, 0, 0, 3]);
     println!();
-    assert_eq!(decrypt(&[0, 0, 0, 6]), vec![0, 0, 0, 6]);
+    assert_eq!(decrypt_rounds(&[0, 0, 0, 6], 1), vec![0, 0, 0, 6]);
     println!();
-    assert_eq!(decrypt(&[0, 0, 0, -6]), vec![0, 0, 0, -6]);
+    assert_eq!(decrypt_rounds(&[0, 0, 0, -6], 1), vec![0, 0, 0, -6]);
     println!();
-    assert_eq!(decrypt(&[0, 0, 0, 9]), vec![0, 0, 0, 9]);
+    assert_eq!(decrypt_rounds(&[0, 0, 0, 9], 1), vec![0, 0, 0, 9]);
     println!();
-    assert_eq!(decrypt(&[0, 0, 0, 10]), vec![0, 10, 0, 0]);
+    assert_eq!(decrypt_rounds(&[0, 0, 0, 10], 1), vec![0, 10, 0, 0]);
     println!();
     let numbers2 = decryption_key(&numbers);
     assert_eq!(
@@ -222,7 +168,7 @@ fn test() {
     );
     assert_eq!(
         decrypt_rounds(&numbers2, 1),
-        decrypt(&numbers2),
+        decrypt_rounds(&numbers2, 1),
         "Rounds vs base implementation"
     );
     assert_eq!(
