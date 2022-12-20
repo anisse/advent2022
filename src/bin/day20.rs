@@ -49,21 +49,20 @@ fn decrypt(numbers: &[i64]) -> Vec<i64> {
                 continue;
             }
             let move_len = num.len() as i64 - 1;
-            let nmove = n % (move_len);
-            let mut new_pos = (i + nmove) % num.len() as i64;
-            if new_pos < 0 {
-                new_pos += move_len;
-            }
-            if new_pos < i && n > 0 {
-                new_pos += 1;
-            }
-            if new_pos == 0 && new_pos != i {
-                if n < 0 {
-                    new_pos = move_len
+            let mut nmove = n % (move_len);
+            let mut new_pos = i;
+            // equivalent to new_pos != i
+            if nmove != 0 {
+                if nmove < 0 {
+                    nmove += move_len;
                 }
-                if n > 0 {
-                    new_pos = 1;
+                if i + nmove > move_len {
+                    nmove += 1;
                 }
+                new_pos = (i + nmove) % num.len() as i64;
+            }
+            if i == 0 && n != 0 && nmove == 0 {
+                new_pos = move_len;
             }
             num.iter().for_each(|(x, _)| {
                 print!("{x}");
@@ -74,9 +73,10 @@ fn decrypt(numbers: &[i64]) -> Vec<i64> {
             });
             println!();
             println!(
-                "Moving {n} from {i} to {new_pos} ( ({n} % {move_len} = {nmove}) + {i} ) % {} = {} (after_adjust: {new_pos}",
-                num.len() as i64,
-                (i + nmove) % num.len() as i64
+                "Moving {n} from {i} to {new_pos} \
+                ({n} % {move_len} = {} -> {nmove} ; ({i} + {nmove} % {} = {new_pos})",
+                n % move_len,
+                num.len()
             );
             num.remove(i as usize);
             num.insert(new_pos as usize, (n, true));
@@ -108,6 +108,89 @@ fn test() {
     assert_eq!(decrypt(&[-3, 0, 1]), vec![0, 1, -3]);
     println!();
     assert_eq!(decrypt(&[0, -7, 1]), vec![0, -7, 1]);
+    println!();
+    assert_eq!(decrypt(&[0, 0, -1]), vec![0, -1, 0]);
+    println!();
+    assert_eq!(decrypt(&[0, 0, 1]), vec![0, 1, 0]);
+    println!();
+    assert_eq!(decrypt(&[0, 0, 3]), vec![0, 3, 0]);
+    println!();
+    assert_eq!(decrypt(&[0, 0, -3]), vec![0, -3, 0]);
+    println!();
+    assert_eq!(decrypt(&[-1, 0, 0]), vec![0, -1, 0]);
+    println!();
+    assert_eq!(decrypt(&[-2, 0, 0]), vec![0, 0, -2]);
+    println!();
+    assert_eq!(decrypt(&[-4, 0, 0]), vec![0, 0, -4]);
+    println!();
+    assert_eq!(decrypt(&[-2, 0, 0, 0]), vec![0, -2, 0, 0]);
+    println!();
+    assert_eq!(decrypt(&[-3, 0, 0, 0]), vec![0, 0, 0, -3]);
+    println!();
+    assert_eq!(decrypt(&[2, 0, 0]), vec![0, 0, 2]);
+    println!();
+    assert_eq!(decrypt(&[2, 0, 0, 0]), vec![0, 0, 2, 0]);
+    println!();
+    assert_eq!(decrypt(&[3, 0, 0, 0]), vec![0, 0, 0, 3]);
+    println!();
+    assert_eq!(decrypt(&[4, 0, 0, 0]), vec![0, 4, 0, 0]);
+    println!();
+    assert_eq!(decrypt(&[3, 0, 0]), vec![0, 3, 0]);
+    println!();
+    assert_eq!(decrypt(&[-3, 0, 0]), vec![0, -3, 0]);
+    println!();
+    assert_eq!(decrypt(&[0, 0, 0, 3]), vec![0, 0, 0, 3]);
+    println!();
+    assert_eq!(decrypt(&[0, 0, 0, 6]), vec![0, 0, 0, 6]);
+    println!();
+    assert_eq!(decrypt(&[0, 0, 0, -6]), vec![0, 0, 0, -6]);
+    println!();
+    assert_eq!(decrypt(&[0, 0, 0, 9]), vec![0, 0, 0, 9]);
+    println!();
+    assert_eq!(decrypt(&[0, 0, 0, 10]), vec![0, 10, 0, 0]);
+    println!();
+    assert_eq!(
+        decrypt(&[
+            0,
+            -2434767459 % 6,
+            3246356612 % 6,
+            -1623178306 % 6,
+            2434767459 % 6,
+            1623178306 % 6,
+            811589153 % 6,
+        ]),
+        vec![
+            0,
+            2434767459 % 6,
+            1623178306 % 6,
+            3246356612 % 6,
+            -2434767459 % 6,
+            -1623178306 % 6,
+            811589153 % 6,
+        ]
+    );
+    println!();
+    assert_eq!(
+        decrypt(&[
+            0,
+            -2434767459,
+            3246356612,
+            -1623178306,
+            2434767459,
+            1623178306,
+            811589153
+        ]),
+        vec![
+            0,
+            2434767459,
+            1623178306,
+            3246356612,
+            -2434767459,
+            -1623178306,
+            811589153
+        ]
+    );
+    println!();
     let numbers2 = decryption_key(&numbers);
     assert_eq!(
         numbers2,
