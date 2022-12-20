@@ -35,12 +35,12 @@ fn decrypt(numbers: &[i32]) -> Vec<i32> {
             }
             //let n = num.get(i).expect("a number");
             let mut new_pos = (i + n) % (num.len() as i32 - 1);
-            if new_pos < 0 {
-                new_pos += num.len() as i32 - 1;
-            } else if new_pos == 0 {
-                new_pos = num.len() as i32 - 1;
+            match new_pos.cmp(&0) {
+                std::cmp::Ordering::Less => new_pos += num.len() as i32 - 1,
+                std::cmp::Ordering::Equal => new_pos = num.len() as i32 - 1,
+                std::cmp::Ordering::Greater => {}
             }
-            println!("Moving {n} from {i} to {new_pos} (length: {})", num.len());
+            //println!("Moving {n} from {i} to {new_pos} (length: {})", num.len());
             num.remove(i as usize);
             num.insert(new_pos as usize, (n, true));
             break;
