@@ -29,7 +29,7 @@ fn decryption_key(numbers: &[i64]) -> Vec<i64> {
 }
 fn decrypt_groove_coord2(numbers: &[i64]) -> i64 {
     let numbers = decryption_key(numbers);
-    let new = (0..10).fold(numbers.to_vec(), |acc, _| decrypt(&acc));
+    let new = decrypt_rounds(&numbers, 10);
     // find 0 ...
     let (zero_pos, _) = new
         .iter()
@@ -38,6 +38,61 @@ fn decrypt_groove_coord2(numbers: &[i64]) -> i64 {
         .expect("a zero");
     let l = new.len();
     new[(zero_pos + 1000) % l] + new[(zero_pos + 2000) % l] + new[(zero_pos + 3000) % l]
+}
+fn decrypt_rounds(numbers: &[i64], rounds: usize) -> Vec<i64> {
+    let mut num = numbers.to_vec();
+    let mut order: Vec<_> = (0..numbers.len()).collect();
+    for r in 0..rounds {
+        //println!("\nAt round {r}, order is {order:?}\n");
+        for k in 0..num.len() {
+            // Start again from beginning
+            for i in 0..(order.len() as i64) {
+                let o = *order.get(i as usize).expect("a number");
+                if k != o {
+                    continue;
+                }
+                let n = *num.get(i as usize).expect("a number");
+                let move_len = num.len() as i64 - 1;
+                let mut nmove = n % (move_len);
+                let mut new_pos = i;
+                // equivalent to new_pos != i
+                if nmove != 0 {
+                    if nmove < 0 {
+                        nmove += move_len;
+                    }
+                    if i + nmove > move_len {
+                        nmove += 1;
+                    }
+                    new_pos = (i + nmove) % num.len() as i64;
+                }
+                if i == 0 && n != 0 && nmove == 0 {
+                    new_pos = move_len;
+                }
+                /*
+                num.iter().for_each(|x| {
+                    print!("{x}");
+                    if n == *x {
+                        print!("*")
+                    }
+                    print!(" ")
+                });
+                println!();
+                println!(
+                    "Moving {n} from {i} to {new_pos} \
+                ({n} % {move_len} = {} -> {nmove} ; ({i} + {nmove} % {} = {new_pos})",
+                    n % move_len,
+                    num.len()
+                );
+                */
+                num.remove(i as usize);
+                num.insert(new_pos as usize, n);
+                order.remove(i as usize);
+                order.insert(new_pos as usize, k);
+                break;
+            }
+        }
+    }
+    num
 }
 fn decrypt(numbers: &[i64]) -> Vec<i64> {
     let mut num: Vec<(i64, bool)> = numbers.iter().cloned().map(|n| (n, false)).collect();
@@ -64,6 +119,7 @@ fn decrypt(numbers: &[i64]) -> Vec<i64> {
             if i == 0 && n != 0 && nmove == 0 {
                 new_pos = move_len;
             }
+            /*
             num.iter().for_each(|(x, _)| {
                 print!("{x}");
                 if n == *x {
@@ -78,6 +134,7 @@ fn decrypt(numbers: &[i64]) -> Vec<i64> {
                 n % move_len,
                 num.len()
             );
+            */
             num.remove(i as usize);
             num.insert(new_pos as usize, (n, true));
             break;
@@ -149,48 +206,6 @@ fn test() {
     println!();
     assert_eq!(decrypt(&[0, 0, 0, 10]), vec![0, 10, 0, 0]);
     println!();
-    assert_eq!(
-        decrypt(&[
-            0,
-            -2434767459 % 6,
-            3246356612 % 6,
-            -1623178306 % 6,
-            2434767459 % 6,
-            1623178306 % 6,
-            811589153 % 6,
-        ]),
-        vec![
-            0,
-            2434767459 % 6,
-            1623178306 % 6,
-            3246356612 % 6,
-            -2434767459 % 6,
-            -1623178306 % 6,
-            811589153 % 6,
-        ]
-    );
-    println!();
-    assert_eq!(
-        decrypt(&[
-            0,
-            -2434767459,
-            3246356612,
-            -1623178306,
-            2434767459,
-            1623178306,
-            811589153
-        ]),
-        vec![
-            0,
-            2434767459,
-            1623178306,
-            3246356612,
-            -2434767459,
-            -1623178306,
-            811589153
-        ]
-    );
-    println!();
     let numbers2 = decryption_key(&numbers);
     assert_eq!(
         numbers2,
@@ -206,7 +221,12 @@ fn test() {
         "new numbers"
     );
     assert_eq!(
-        (0..1).fold(numbers2.to_vec(), |acc, _| decrypt(&acc)),
+        decrypt_rounds(&numbers2, 1),
+        decrypt(&numbers2),
+        "Rounds vs base implementation"
+    );
+    assert_eq!(
+        decrypt_rounds(&numbers2, 1),
         vec![
             0,
             -2434767459,
@@ -219,7 +239,7 @@ fn test() {
         "New numbers after 1 round"
     );
     assert_eq!(
-        (0..2).fold(numbers2.to_vec(), |acc, _| decrypt(&acc)),
+        decrypt_rounds(&numbers2, 2),
         vec![
             0,
             2434767459,
@@ -232,7 +252,7 @@ fn test() {
         "after 2 rounds"
     );
     assert_eq!(
-        (0..4).fold(numbers2.to_vec(), |acc, _| decrypt(&acc)),
+        decrypt_rounds(&numbers2, 4),
         vec![
             0,
             1623178306,
@@ -245,7 +265,7 @@ fn test() {
         "after 4 rounds"
     );
     assert_eq!(
-        (0..10).fold(numbers2.to_vec(), |acc, _| decrypt(&acc)),
+        decrypt_rounds(&numbers2, 10),
         vec![
             0,
             -2434767459,
