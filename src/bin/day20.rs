@@ -104,6 +104,10 @@ fn test() {
     assert_eq!(decrypt(&[3, 0, 1]), vec![0, 1, 3]);
     println!();
     assert_eq!(decrypt(&[0, 7, 1]), vec![0, 7, 1]);
+    println!();
+    assert_eq!(decrypt(&[-3, 0, 1]), vec![0, 1, -3]);
+    println!();
+    assert_eq!(decrypt(&[0, -7, 1]), vec![0, -7, 1]);
     let numbers2 = decryption_key(&numbers);
     assert_eq!(
         numbers2,
