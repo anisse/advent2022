@@ -50,16 +50,16 @@ enum Op {
 }
 
 impl Op {
+    fn ev(num: &str, m: &CalcBook) -> i64 {
+        m.get(num).expect("a number").eval(m)
+    }
     fn eval(&self, m: &CalcBook) -> i64 {
-        fn ev(num: &str, m: &CalcBook) -> i64 {
-            m.get(num).expect("a number").eval(m)
-        }
         match self {
             Number(i) => *i,
-            Div(a, b) => ev(a, m) / ev(b, m),
-            Add(a, b) => ev(a, m) + ev(b, m),
-            Mul(a, b) => ev(a, m) * ev(b, m),
-            Sub(a, b) => ev(a, m) - ev(b, m),
+            Div(a, b) => Self::ev(a, m) / Self::ev(b, m),
+            Add(a, b) => Self::ev(a, m) + Self::ev(b, m),
+            Mul(a, b) => Self::ev(a, m) * Self::ev(b, m),
+            Sub(a, b) => Self::ev(a, m) - Self::ev(b, m),
         }
     }
     fn operands(&self) -> Option<(&str, &str)> {
@@ -76,6 +76,42 @@ impl Op {
                 r1 == op || r2 == op || o1.has_op(op, ops) || o2.has_op(op, ops)
             }
             None => false,
+        }
+    }
+    fn op1_inverse(&self, val: i64, ops: &CalcBook) -> i64 {
+        match self {
+            Number(_) => unreachable!(),
+            Div(_, b) => val * Self::ev(b, ops),
+            Add(_, b) => val - Self::ev(b, ops),
+            Mul(_, b) => val / Self::ev(b, ops),
+            Sub(_, b) => val + Self::ev(b, ops),
+        }
+    }
+    fn op2_inverse(&self, val: i64, ops: &CalcBook) -> i64 {
+        match self {
+            Number(_) => unreachable!(),
+            Div(a, _) => Self::ev(a, ops) / val,
+            Add(a, _) => val - Self::ev(a, ops),
+            Mul(a, _) => val / Self::ev(a, ops),
+            Sub(a, _) => Self::ev(a, ops) - val,
+        }
+    }
+    // Returns the value of variable so that self is equal to val
+    fn want_equal(&self, variable: &str, val: i64, ops: &CalcBook) -> i64 {
+        let (r1, r2) = self.operands().expect("ops");
+        let o1 = ops.get(r1).expect("o1");
+        let o2 = ops.get(r2).expect("o2");
+        if r1 == variable {
+            self.op1_inverse(val, ops)
+        } else if r2 == variable {
+            self.op2_inverse(val, ops)
+        } else {
+            let (o, new_val) = if o1.has_op(variable, ops) {
+                (o1, self.op1_inverse(val, ops))
+            } else {
+                (o2, self.op2_inverse(val, ops))
+            };
+            o.want_equal(variable, new_val, ops)
         }
     }
 }
@@ -96,7 +132,12 @@ fn number_to_yell(ops: &CalcBook) -> i64 {
         o1.has_op("humn", ops),
         o2.has_op("humn", ops)
     );
-    0
+    let (humn_side, target_side) = if o1.has_op("humn", ops) {
+        (o1, o2)
+    } else {
+        (o2, o1)
+    };
+    humn_side.want_equal("humn", target_side.eval(ops), ops)
 }
 
 #[test]
