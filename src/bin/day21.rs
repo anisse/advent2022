@@ -10,8 +10,8 @@ fn main() {
     let res = operation(&ops);
     println!("Summary: {}", res);
     //part 2
-    //let res = operation2(&ops);
-    //println!("Summary2: {}", res);
+    let res = number_to_yell(&ops);
+    println!("Summary2: {}", res);
 }
 fn parse(input: &str) -> HashMap<String, Op> {
     input
@@ -51,18 +51,25 @@ enum Op {
 
 impl Op {
     fn eval(&self, m: &HashMap<String, Op>) -> i64 {
+        fn ev(num: &str, m: &HashMap<String, Op>) -> i64 {
+            m.get(num).expect("a number").eval(m)
+        }
         match self {
             Number(i) => *i,
-            Div(a, b) => m.get(a).expect("a").eval(m) / m.get(b).expect("b").eval(m),
-            Add(a, b) => m.get(a).expect("a").eval(m) + m.get(b).expect("b").eval(m),
-            Mul(a, b) => m.get(a).expect("a").eval(m) * m.get(b).expect("b").eval(m),
-            Sub(a, b) => m.get(a).expect("a").eval(m) - m.get(b).expect("b").eval(m),
+            Div(a, b) => ev(a, m) / ev(b, m),
+            Add(a, b) => ev(a, m) + ev(b, m),
+            Mul(a, b) => ev(a, m) * ev(b, m),
+            Sub(a, b) => ev(a, m) - ev(b, m),
         }
     }
 }
 
 fn operation(ops: &HashMap<String, Op>) -> i64 {
     ops.get("root").expect("root").eval(ops)
+}
+
+fn number_to_yell(ops: &HashMap<String, Op>) -> i64 {
+    0
 }
 
 #[test]
@@ -72,6 +79,6 @@ fn test() {
     let res = operation(&ops);
     assert_eq!(res, 152);
     //part 2
-    // let res = operation2(&ops);
-    // assert_eq!(res, 42);
+    let res = number_to_yell(&ops);
+    assert_eq!(res, 301);
 }
