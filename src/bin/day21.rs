@@ -8,10 +8,10 @@ fn main() {
     let ops = parse(input!());
     //part 1
     let res = operation(&ops);
-    println!("Summary: {}", res);
+    println!("root evaluation: {}", res);
     //part 2
     let res = number_to_yell(&ops);
-    println!("Summary2: {}", res);
+    println!("humn value to have both root operands equal: {}", res);
 }
 fn parse(input: &str) -> CalcBook {
     input
@@ -127,11 +127,13 @@ fn number_to_yell(ops: &CalcBook) -> i64 {
     let (r1, r2) = root.operands().expect("ops");
     let o1 = ops.get(r1).expect("o1");
     let o2 = ops.get(r2).expect("o2");
+    /*
     println!(
         "Root has {r1} and {r2}. Humn is on r1 ? {} on r2 {} ?",
         o1.has_op("humn", ops),
         o2.has_op("humn", ops)
     );
+    */
     let (humn_side, target_side) = if o1.has_op("humn", ops) {
         (o1, o2)
     } else {
