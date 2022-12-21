@@ -67,6 +67,29 @@ fn decrypt_rounds(numbers: &[i64], rounds: usize) -> Vec<i64> {
                 if i == 0 && n != 0 && nmove == 0 {
                     new_pos = move_len;
                 }
+                // The implemenation below does not pass tests but it is *also* correct
+                // Tests do not take into account the fact that the list is circular, so it does
+                // not matter where the "start" of the flat view is. A proper way to test it would
+                // be to only start at 0 (but it wouldn't allow multiple 0, like we do)
+                /*
+                let move_len = num.len() as i64 - 1;
+                let nmove = n % (move_len);
+                let mut new_pos = (i + nmove) % num.len() as i64;
+                if new_pos < 0 {
+                    new_pos += move_len;
+                }
+                if new_pos < i && n > 0 {
+                    new_pos += 1;
+                }
+                if new_pos == 0 && new_pos != i {
+                    if n < 0 {
+                        new_pos = move_len
+                    }
+                    if n > 0 {
+                        new_pos = 1;
+                    }
+                }
+                */
                 /*
                 num.iter().for_each(|x| {
                     print!("{x}");
