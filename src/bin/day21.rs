@@ -13,7 +13,7 @@ fn main() {
     let res = number_to_yell(&ops);
     println!("Summary2: {}", res);
 }
-fn parse(input: &str) -> HashMap<String, Op> {
+fn parse(input: &str) -> CalcBook {
     input
         .lines()
         .map(|l| {
@@ -50,8 +50,8 @@ enum Op {
 }
 
 impl Op {
-    fn eval(&self, m: &HashMap<String, Op>) -> i64 {
-        fn ev(num: &str, m: &HashMap<String, Op>) -> i64 {
+    fn eval(&self, m: &CalcBook) -> i64 {
+        fn ev(num: &str, m: &CalcBook) -> i64 {
             m.get(num).expect("a number").eval(m)
         }
         match self {
@@ -62,13 +62,40 @@ impl Op {
             Sub(a, b) => ev(a, m) - ev(b, m),
         }
     }
+    fn operands(&self) -> Option<(&str, &str)> {
+        match self {
+            Number(_) => None,
+            Div(r1, r2) | Add(r1, r2) | Mul(r1, r2) | Sub(r1, r2) => Some((r1, r2)),
+        }
+    }
+    fn has_op(&self, op: &str, ops: &CalcBook) -> bool {
+        match self.operands() {
+            Some((r1, r2)) => {
+                let o1 = ops.get(r1).expect("o1");
+                let o2 = ops.get(r2).expect("o2");
+                r1 == op || r2 == op || o1.has_op(op, ops) || o2.has_op(op, ops)
+            }
+            None => false,
+        }
+    }
 }
 
-fn operation(ops: &HashMap<String, Op>) -> i64 {
+fn operation(ops: &CalcBook) -> i64 {
     ops.get("root").expect("root").eval(ops)
 }
 
-fn number_to_yell(ops: &HashMap<String, Op>) -> i64 {
+type CalcBook = HashMap<String, Op>;
+
+fn number_to_yell(ops: &CalcBook) -> i64 {
+    let root = ops.get("root").expect("root");
+    let (r1, r2) = root.operands().expect("ops");
+    let o1 = ops.get(r1).expect("o1");
+    let o2 = ops.get(r2).expect("o2");
+    println!(
+        "Root has {r1} and {r2}. Humn is on r1 ? {} on r2 {} ?",
+        o1.has_op("humn", ops),
+        o2.has_op("humn", ops)
+    );
     0
 }
 
