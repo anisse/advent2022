@@ -42,22 +42,27 @@ fn parse(input: &str) -> HashMap<String, Op> {
 
 #[derive(Debug, Eq, PartialEq)]
 enum Op {
-    Number(i32),
+    Number(i64),
     Div(String, String),
     Add(String, String),
     Mul(String, String),
     Sub(String, String),
 }
 
-fn operation(ops: &HashMap<String, Op>) -> usize {
-    let mut count = 0;
-    for _ in ops.iter() {
-        if true {
-            count += 1
+impl Op {
+    fn eval(&self, m: &HashMap<String, Op>) -> i64 {
+        match self {
+            Number(i) => *i,
+            Div(a, b) => m.get(a).expect("a").eval(m) / m.get(b).expect("b").eval(m),
+            Add(a, b) => m.get(a).expect("a").eval(m) + m.get(b).expect("b").eval(m),
+            Mul(a, b) => m.get(a).expect("a").eval(m) * m.get(b).expect("b").eval(m),
+            Sub(a, b) => m.get(a).expect("a").eval(m) - m.get(b).expect("b").eval(m),
         }
-        todo!()
     }
-    count
+}
+
+fn operation(ops: &HashMap<String, Op>) -> i64 {
+    ops.get("root").expect("root").eval(ops)
 }
 
 #[test]
