@@ -2,7 +2,7 @@ use advent2022::*;
 
 //use itertools::Itertools;
 
-use crate::Dir::*;
+use crate::Move::*;
 use crate::Tile::*;
 
 fn main() {
@@ -46,15 +46,16 @@ fn parse(input: &str) -> (Map, Password) {
         }
         let n: u8 = ns.parse().expect("an int");
         ns.clear();
-        pass.push(Move {
-            n,
-            dir: match c {
-                'L' => Left,
-                'R' => Right,
-                _ => panic!("unknown dir {c}"),
-            },
+        pass.push(Forward(n));
+        pass.push(match c {
+            'L' => Left,
+            'R' => Right,
+            _ => panic!("unknown dir {c}"),
         })
     }
+    let n: u8 = ns.parse().expect("an int");
+    ns.clear();
+    pass.push(Forward(n));
 
     (map, pass)
 }
@@ -66,13 +67,8 @@ type Password = Vec<Move>;
 type PasswordSlice = [Move];
 
 #[derive(Debug)]
-struct Move {
-    n: u8,
-    dir: Dir,
-}
-
-#[derive(Debug)]
-enum Dir {
+enum Move {
+    Forward(u8),
     Left,
     Right,
 }
@@ -98,9 +94,9 @@ fn operation(m: &MapSlice, p: &PasswordSlice) -> usize {
 #[test]
 fn test() {
     let (map, pass) = parse(sample!());
+    //part 1
     dbg!(&map);
     dbg!(&pass);
-    //part 1
     let res = operation(&map, &pass);
     assert_eq!(res, 42);
     //part 2
