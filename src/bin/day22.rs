@@ -266,11 +266,13 @@ impl Pos {
                 Facing::Left => cube_pos.x = end,
                 Facing::Up => cube_pos.y = end,
             }
+            /*
             println!(
                 "Changed face from {face:?} ({:?}) to {:?} ({cube_pos:?}), and facing from {facing:?} to {:?}",
                 self.to_cube_face(c).0,
                 next_face.face, next_face.facing
             );
+            */
             assert!(cube_pos.x >= 0);
             assert!(cube_pos.y >= 0);
             assert!(cube_pos.x < c.side);
@@ -280,13 +282,13 @@ impl Pos {
         }
         *self = cube_pos.to_map_coord(c, face);
         if m[self.y as usize][self.x as usize] == Wall {
-            println!("Cancelling Wall move {facing:?}, {start_pos:?} -> {self:?}");
+            //println!("Cancelling Wall move {facing:?}, {start_pos:?} -> {self:?}");
             self.x = start_pos.x;
             self.y = start_pos.y;
             *facing = start_facing;
             return false;
         }
-        println!("Cube moving {facing:?}, {start_pos:?} -> {self:?}");
+        //println!("Cube moving {facing:?}, {start_pos:?} -> {self:?}");
         true
     }
 }
@@ -725,7 +727,7 @@ fn walk_cube(m: &MapSlice, p: &PasswordSlice) -> usize {
     };
     p.iter()
         .for_each(|mov| single_move_cube(m, &cube, mov, &mut pos, &mut facing));
-    println!("Done, now at pos {pos:?} facing {facing:?}");
+    //println!("Done, now at pos {pos:?} facing {facing:?}");
     1000 * (pos.y + 1) as usize + 4 * (pos.x + 1) as usize + facing as usize
 }
 
