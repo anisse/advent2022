@@ -1,7 +1,5 @@
 use advent2022::*;
 
-//use itertools::Itertools;
-
 use crate::Move::*;
 use crate::Tile::*;
 
@@ -320,15 +318,6 @@ fn single_move(map: &MapSlice, mov: &Move, pos: &mut Pos, facing: &mut Facing) {
         Left | Right => facing.rotate(mov),
     }
 }
-
-/*
-#[derive(Debug, Clone)]
-struct PosCube {
-    x: isize,
-    y: isize,
-    face: CubeFace,
-}
-*/
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 enum CubeFace {
