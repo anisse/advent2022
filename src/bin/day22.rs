@@ -9,10 +9,10 @@ fn main() {
     let (map, pass) = parse(input!());
     //part 1
     let res = walk_map(&map, &pass);
-    println!("Summary: {}", res);
+    println!("Password on flat edges: {}", res);
     //part 2
     let res = walk_cube(&map, &pass);
-    println!("Summary2: {}", res);
+    println!("Password on a cube: {}", res);
 }
 fn parse(input: &str) -> (Map, Password) {
     let mut inp = input.split("\n\n");
@@ -97,13 +97,6 @@ impl Facing {
             Left => -1,
             Right => 1,
             _ => 0,
-        };
-        *self = Self::from(*self as isize + rot + 4);
-    }
-    fn rotate_cube(&mut self, r: Rotation) {
-        let rot = match r {
-            Rotation::Left => -1,
-            Rotation::Right => 1,
         };
         *self = Self::from(*self as isize + rot + 4);
     }
@@ -359,13 +352,6 @@ impl From<usize> for CubeFace {
 }
 
 #[derive(Debug, Clone)]
-enum Rotation {
-    Left = -1,
-    Right = 1,
-}
-
-
-#[derive(Debug, Clone)]
 struct NextFace {
     face: CubeFace,
     facing: Facing,
@@ -567,7 +553,7 @@ fn walk_cube(m: &MapSlice, p: &PasswordSlice) -> usize {
             map: [
                 CubeFacePos {
                     //Front
-                    start: Pos { x: 1 * side, y: 0 }, //Front,
+                    start: Pos { x: side, y: 0 }, //Front,
                     next: [
                         NextFace {
                             // Facing Right
@@ -593,10 +579,7 @@ fn walk_cube(m: &MapSlice, p: &PasswordSlice) -> usize {
                 },
                 CubeFacePos {
                     //Right
-                    start: Pos {
-                        x: 2 * side,
-                        y: 0 * side,
-                    }, //Right,
+                    start: Pos { x: 2 * side, y: 0 }, //Right,
                     next: [
                         NextFace {
                             // Facing Right
@@ -622,10 +605,7 @@ fn walk_cube(m: &MapSlice, p: &PasswordSlice) -> usize {
                 },
                 CubeFacePos {
                     //Down
-                    start: Pos {
-                        x: 1 * side,
-                        y: 1 * side,
-                    }, //Down,
+                    start: Pos { x: side, y: side }, //Down,
                     next: [
                         NextFace {
                             // Facing Right
@@ -651,7 +631,7 @@ fn walk_cube(m: &MapSlice, p: &PasswordSlice) -> usize {
                 },
                 CubeFacePos {
                     //Left
-                    start: Pos { x: 0 * side, y: 2 * side }, //Left,
+                    start: Pos { x: 0, y: 2 * side }, //Left,
                     next: [
                         NextFace {
                             // Facing Right
@@ -677,7 +657,7 @@ fn walk_cube(m: &MapSlice, p: &PasswordSlice) -> usize {
                 },
                 CubeFacePos {
                     // Up
-                    start: Pos { x: 0, y: 3* side }, //Up,
+                    start: Pos { x: 0, y: 3 * side }, //Up,
                     next: [
                         NextFace {
                             // Facing Right
@@ -704,7 +684,7 @@ fn walk_cube(m: &MapSlice, p: &PasswordSlice) -> usize {
                 CubeFacePos {
                     // Back
                     start: Pos {
-                        x: 1 * side,
+                        x: side,
                         y: 2 * side,
                     }, //Back,
                     next: [
