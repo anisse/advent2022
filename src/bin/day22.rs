@@ -604,8 +604,177 @@ fn walk_cube(m: &MapSlice, p: &PasswordSlice) -> usize {
                 },
             ],
         },
-        /* NOT DONE */
-        50 => Cube { side, map: todo!() },
+        50 => Cube {
+            side,
+            /* NOT DONE */
+            map: [
+                CubeFacePos {
+                    //Front
+                    start: Pos { x: 2 * side, y: 0 }, //Front,
+                    next: [
+                        NextFace {
+                            // Facing Right
+                            face: CubeFace::Right,
+                            facing: Facing::Left,
+                        },
+                        NextFace {
+                            //Facing Down
+                            face: CubeFace::Down,
+                            facing: Facing::Down,
+                        },
+                        NextFace {
+                            //Facing Left
+                            face: CubeFace::Left,
+                            facing: Facing::Down,
+                        },
+                        NextFace {
+                            //Facing Up
+                            face: CubeFace::Up,
+                            facing: Facing::Up,
+                        },
+                    ],
+                },
+                CubeFacePos {
+                    //Right
+                    start: Pos {
+                        x: 3 * side,
+                        y: 2 * side,
+                    }, //Right,
+                    next: [
+                        NextFace {
+                            // Facing Right
+                            face: CubeFace::Front,
+                            facing: Facing::Left,
+                        },
+                        NextFace {
+                            //Facing Down
+                            face: CubeFace::Up,
+                            facing: Facing::Right,
+                        },
+                        NextFace {
+                            //Facing Left
+                            face: CubeFace::Back,
+                            facing: Facing::Left,
+                        },
+                        NextFace {
+                            //Facing Up
+                            face: CubeFace::Down,
+                            facing: Facing::Left,
+                        },
+                    ],
+                },
+                CubeFacePos {
+                    //Down
+                    start: Pos {
+                        x: 2 * side,
+                        y: side,
+                    }, //Down,
+                    next: [
+                        NextFace {
+                            // Facing Right
+                            face: CubeFace::Right,
+                            facing: Facing::Down,
+                        },
+                        NextFace {
+                            //Facing Down
+                            face: CubeFace::Back,
+                            facing: Facing::Down,
+                        },
+                        NextFace {
+                            //Facing Left
+                            face: CubeFace::Left,
+                            facing: Facing::Left,
+                        },
+                        NextFace {
+                            //Facing Up
+                            face: CubeFace::Front,
+                            facing: Facing::Up,
+                        },
+                    ],
+                },
+                CubeFacePos {
+                    //Left
+                    start: Pos { x: side, y: side }, //Left,
+                    next: [
+                        NextFace {
+                            // Facing Right
+                            face: CubeFace::Down,
+                            facing: Facing::Right,
+                        },
+                        NextFace {
+                            //Facing Down
+                            face: CubeFace::Back,
+                            facing: Facing::Right,
+                        },
+                        NextFace {
+                            //Facing Left
+                            face: CubeFace::Up,
+                            facing: Facing::Left,
+                        },
+                        NextFace {
+                            //Facing Up
+                            face: CubeFace::Front,
+                            facing: Facing::Right,
+                        },
+                    ],
+                },
+                CubeFacePos {
+                    // Up
+                    start: Pos { x: 0, y: side }, //Up,
+                    next: [
+                        NextFace {
+                            // Facing Right
+                            face: CubeFace::Left,
+                            facing: Facing::Right,
+                        },
+                        NextFace {
+                            //Facing Down
+                            face: CubeFace::Back,
+                            facing: Facing::Up,
+                        },
+                        NextFace {
+                            //Facing Left
+                            face: CubeFace::Right,
+                            facing: Facing::Up,
+                        },
+                        NextFace {
+                            //Facing Up
+                            face: CubeFace::Front,
+                            facing: Facing::Down,
+                        },
+                    ],
+                },
+                CubeFacePos {
+                    // Back
+                    start: Pos {
+                        x: 2 * side,
+                        y: 2 * side,
+                    }, //Back,
+                    next: [
+                        NextFace {
+                            // Facing Right
+                            face: CubeFace::Right,
+                            facing: Facing::Right,
+                        },
+                        NextFace {
+                            //Facing Down
+                            face: CubeFace::Up,
+                            facing: Facing::Up,
+                        },
+                        NextFace {
+                            //Facing Left
+                            face: CubeFace::Left,
+                            facing: Facing::Up,
+                        },
+                        NextFace {
+                            //Facing Up
+                            face: CubeFace::Down,
+                            facing: Facing::Up,
+                        },
+                    ],
+                },
+            ],
+        },
         _ => unreachable!(),
     };
     let mut pos = Pos {
