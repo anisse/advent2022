@@ -251,10 +251,10 @@ impl Pos {
                 (Facing::Down, Facing::Up) | (Facing::Up, Facing::Down) => {
                     cube_pos.x = end - cube_pos.x
                 }
-                (Facing::Down, Facing::Right) | (Facing::Up, Facing::Right) => {
+
+                (Facing::Down, Facing::Left) | (Facing::Up, Facing::Right) => {
                     cube_pos.y = cube_pos.x
                 }
-
                 (Facing::Right, Facing::Up) | (Facing::Left, Facing::Down) => {
                     cube_pos.x = cube_pos.y
                 }
@@ -262,8 +262,7 @@ impl Pos {
                 (Facing::Right, Facing::Down) | (Facing::Left, Facing::Up) => {
                     cube_pos.x = end - cube_pos.y
                 }
-
-                (Facing::Down, Facing::Left) | (Facing::Up, Facing::Left) => {
+                (Facing::Down, Facing::Right) | (Facing::Up, Facing::Left) => {
                     cube_pos.y = end - cube_pos.x
                 }
             }
