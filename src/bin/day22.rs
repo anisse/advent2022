@@ -358,36 +358,6 @@ impl From<usize> for CubeFace {
         }
     }
 }
-/*
-impl CubeFace {
-    fn next(self, facing: Facing, cube: Cube) -> Self {
-        match self {
-            CubeFace::Front => match facing {
-                Facing::Right => Self::Right,
-                Facing::Down => Self::Down,
-                Facing::Left => Self::Left,
-                Facing::Up => Self::Up,
-            },
-            CubeFace::Right => match facing {
-                Facing::Right => Self::Back,
-                Facing::Down => Self::Down,
-                Facing::Left => Self::Front,
-                Facing::Up => Self::Up,
-            },
-            CubeFace::Down => match facing {
-                Facing::Right => Self::Right,
-                Facing::Down => Self::Back,
-                Facing::Left => Self::Front,
-                Facing::Up => Self::Up,
-
-            },
-            CubeFace::Left => todo!(),
-            CubeFace::Up => todo!(),
-            CubeFace::Back => todo!(),
-        }
-    }
-}
-*/
 
 #[derive(Debug, Clone)]
 enum Rotation {
@@ -395,13 +365,6 @@ enum Rotation {
     Right = 1,
 }
 
-/*
-#[derive(Debug, Clone)]
-struct CubeFacePos {
-    face: CubeFace,
-    start: Pos,
-}
-*/
 
 #[derive(Debug, Clone)]
 struct NextFace {
@@ -432,10 +395,6 @@ fn walk_cube(m: &MapSlice, p: &PasswordSlice) -> usize {
         // hardcode sample and input here
         4 => Cube {
             side,
-            /*
-            map: [
-            ],
-            */
             map: [
                 CubeFacePos {
                     //Front
@@ -606,16 +565,15 @@ fn walk_cube(m: &MapSlice, p: &PasswordSlice) -> usize {
         },
         50 => Cube {
             side,
-            /* NOT DONE */
             map: [
                 CubeFacePos {
                     //Front
-                    start: Pos { x: 2 * side, y: 0 }, //Front,
+                    start: Pos { x: 1 * side, y: 0 }, //Front,
                     next: [
                         NextFace {
                             // Facing Right
                             face: CubeFace::Right,
-                            facing: Facing::Left,
+                            facing: Facing::Right,
                         },
                         NextFace {
                             //Facing Down
@@ -625,7 +583,36 @@ fn walk_cube(m: &MapSlice, p: &PasswordSlice) -> usize {
                         NextFace {
                             //Facing Left
                             face: CubeFace::Left,
-                            facing: Facing::Down,
+                            facing: Facing::Right,
+                        },
+                        NextFace {
+                            //Facing Up
+                            face: CubeFace::Up,
+                            facing: Facing::Right,
+                        },
+                    ],
+                },
+                CubeFacePos {
+                    //Right
+                    start: Pos {
+                        x: 2 * side,
+                        y: 0 * side,
+                    }, //Right,
+                    next: [
+                        NextFace {
+                            // Facing Right
+                            face: CubeFace::Back,
+                            facing: Facing::Left,
+                        },
+                        NextFace {
+                            //Facing Down
+                            face: CubeFace::Down,
+                            facing: Facing::Left,
+                        },
+                        NextFace {
+                            //Facing Left
+                            face: CubeFace::Front,
+                            facing: Facing::Left,
                         },
                         NextFace {
                             //Facing Up
@@ -635,45 +622,16 @@ fn walk_cube(m: &MapSlice, p: &PasswordSlice) -> usize {
                     ],
                 },
                 CubeFacePos {
-                    //Right
-                    start: Pos {
-                        x: 3 * side,
-                        y: 2 * side,
-                    }, //Right,
-                    next: [
-                        NextFace {
-                            // Facing Right
-                            face: CubeFace::Front,
-                            facing: Facing::Left,
-                        },
-                        NextFace {
-                            //Facing Down
-                            face: CubeFace::Up,
-                            facing: Facing::Right,
-                        },
-                        NextFace {
-                            //Facing Left
-                            face: CubeFace::Back,
-                            facing: Facing::Left,
-                        },
-                        NextFace {
-                            //Facing Up
-                            face: CubeFace::Down,
-                            facing: Facing::Left,
-                        },
-                    ],
-                },
-                CubeFacePos {
                     //Down
                     start: Pos {
-                        x: 2 * side,
-                        y: side,
+                        x: 1 * side,
+                        y: 1 * side,
                     }, //Down,
                     next: [
                         NextFace {
                             // Facing Right
                             face: CubeFace::Right,
-                            facing: Facing::Down,
+                            facing: Facing::Up,
                         },
                         NextFace {
                             //Facing Down
@@ -683,7 +641,7 @@ fn walk_cube(m: &MapSlice, p: &PasswordSlice) -> usize {
                         NextFace {
                             //Facing Left
                             face: CubeFace::Left,
-                            facing: Facing::Left,
+                            facing: Facing::Down,
                         },
                         NextFace {
                             //Facing Up
@@ -694,77 +652,77 @@ fn walk_cube(m: &MapSlice, p: &PasswordSlice) -> usize {
                 },
                 CubeFacePos {
                     //Left
-                    start: Pos { x: side, y: side }, //Left,
+                    start: Pos { x: 0 * side, y: 2 * side }, //Left,
                     next: [
                         NextFace {
                             // Facing Right
-                            face: CubeFace::Down,
-                            facing: Facing::Right,
-                        },
-                        NextFace {
-                            //Facing Down
                             face: CubeFace::Back,
                             facing: Facing::Right,
                         },
                         NextFace {
-                            //Facing Left
+                            //Facing Down
                             face: CubeFace::Up,
-                            facing: Facing::Left,
+                            facing: Facing::Down,
+                        },
+                        NextFace {
+                            //Facing Left
+                            face: CubeFace::Front,
+                            facing: Facing::Right,
                         },
                         NextFace {
                             //Facing Up
-                            face: CubeFace::Front,
+                            face: CubeFace::Down,
                             facing: Facing::Right,
                         },
                     ],
                 },
                 CubeFacePos {
                     // Up
-                    start: Pos { x: 0, y: side }, //Up,
+                    start: Pos { x: 0, y: 3* side }, //Up,
                     next: [
                         NextFace {
                             // Facing Right
-                            face: CubeFace::Left,
-                            facing: Facing::Right,
-                        },
-                        NextFace {
-                            //Facing Down
                             face: CubeFace::Back,
                             facing: Facing::Up,
                         },
                         NextFace {
-                            //Facing Left
+                            //Facing Down
                             face: CubeFace::Right,
-                            facing: Facing::Up,
+                            facing: Facing::Down,
+                        },
+                        NextFace {
+                            //Facing Left
+                            face: CubeFace::Front,
+                            facing: Facing::Down,
                         },
                         NextFace {
                             //Facing Up
-                            face: CubeFace::Front,
-                            facing: Facing::Down,
+                            face: CubeFace::Left,
+                            facing: Facing::Up,
                         },
                     ],
                 },
                 CubeFacePos {
                     // Back
                     start: Pos {
-                        x: 2 * side,
+                        x: 1 * side,
                         y: 2 * side,
                     }, //Back,
                     next: [
                         NextFace {
                             // Facing Right
                             face: CubeFace::Right,
-                            facing: Facing::Right,
+                            facing: Facing::Left,
                         },
                         NextFace {
                             //Facing Down
                             face: CubeFace::Up,
-                            facing: Facing::Up,
+                            facing: Facing::Left,
                         },
                         NextFace {
                             //Facing Left
                             face: CubeFace::Left,
-                            facing: Facing::Up,
+                            facing: Facing::Left,
                         },
                         NextFace {
                             //Facing Up
