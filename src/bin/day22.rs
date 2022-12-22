@@ -11,8 +11,8 @@ fn main() {
     let res = walk_map(&map, &pass);
     println!("Summary: {}", res);
     //part 2
-    //let res = operation2(&map, &pass);
-    //println!("Summary2: {}", res);
+    let res = walk_cube(&map, &pass);
+    println!("Summary2: {}", res);
 }
 fn parse(input: &str) -> (Map, Password) {
     let mut inp = input.split("\n\n");
@@ -100,6 +100,13 @@ impl Facing {
         };
         *self = Self::from(*self as isize + rot + 4);
     }
+    fn rotate_cube(&mut self, r: Rotation) {
+        let rot = match r {
+            Rotation::Left => -1,
+            Rotation::Right => 1,
+        };
+        *self = Self::from(*self as isize + rot + 4);
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -123,7 +130,7 @@ impl Pos {
             Facing::Left => self.move_wrap_left(m),
             Facing::Up => self.move_wrap_up(m),
         }
-        println!("Moving {facing:?}, {start_pos:?} -> {self:?}");
+        //println!("Moving {facing:?}, {start_pos:?} -> {self:?}");
         if m[self.y as usize][self.x as usize] == Wall {
             self.x = start_pos.x;
             self.y = start_pos.y;
@@ -152,10 +159,12 @@ impl Pos {
             || m[self.y as usize][self.x as usize] == OffMap
         {
             for y in (0..(self.y - 1)).rev() {
+                /*
                 println!(
                     "evaluating {}x{y}: {:?}",
                     self.x, m[y as usize][self.x as usize]
                 );
+                */
                 if self.x >= m[y as usize].len() as isize
                     || m[y as usize][self.x as usize] == OffMap
                 {
@@ -192,6 +201,102 @@ impl Pos {
             self.y = m.len() as isize - 1;
         }
     }
+    fn to_cube_face(&self, c: &Cube) -> (Self, CubeFace) {
+        for face in 0..6 {
+            if self.x >= c.map[face].start.x
+                && self.x < c.map[face].start.x + c.side
+                && self.y >= c.map[face].start.y
+                && self.y < c.map[face].start.y + c.side
+            {
+                // This is the face
+                return (
+                    Self {
+                        x: self.x - c.map[face].start.x,
+                        y: self.y - c.map[face].start.y,
+                    },
+                    CubeFace::from(face),
+                );
+            }
+        }
+        panic!("Unknown coord {self:?} on cube {c:?}");
+    }
+    fn to_map_coord(&self, c: &Cube, face: CubeFace) -> Self {
+        Self {
+            x: self.x + c.map[face as usize].start.x,
+            y: self.y + c.map[face as usize].start.y,
+        }
+    }
+    fn single_move_cube(&mut self, facing: &mut Facing, m: &MapSlice, c: &Cube) -> bool {
+        let start_pos = self.clone();
+        let start_facing = *facing;
+        let (mut cube_pos, mut face) = self.to_cube_face(c);
+        match facing {
+            Facing::Right => cube_pos.x += 1,
+            Facing::Down => cube_pos.y += 1,
+            Facing::Left => cube_pos.x -= 1,
+            Facing::Up => cube_pos.y -= 1,
+        }
+        if cube_pos.x < 0 || cube_pos.x >= c.side || cube_pos.y < 0 || cube_pos.y >= c.side {
+            let next_face = &c.map[face as usize].next[*facing as usize];
+            let end = c.side - 1;
+            match (*facing, next_face.facing) {
+                (Facing::Right, Facing::Right)
+                | (Facing::Down, Facing::Down)
+                | (Facing::Left, Facing::Left)
+                | (Facing::Up, Facing::Up) => {}
+
+                (Facing::Right, Facing::Left) | (Facing::Left, Facing::Right) => {
+                    cube_pos.y = end - cube_pos.y
+                }
+                (Facing::Down, Facing::Up) | (Facing::Up, Facing::Down) => {
+                    cube_pos.x = end - cube_pos.x
+                }
+                (Facing::Down, Facing::Right) | (Facing::Up, Facing::Right) => {
+                    cube_pos.y = cube_pos.x
+                }
+
+                (Facing::Right, Facing::Up) | (Facing::Left, Facing::Down) => {
+                    cube_pos.x = cube_pos.y
+                }
+
+                (Facing::Right, Facing::Down) | (Facing::Left, Facing::Up) => {
+                    cube_pos.x = end - cube_pos.y
+                }
+
+                (Facing::Down, Facing::Left) | (Facing::Up, Facing::Left) => {
+                    cube_pos.y = end - cube_pos.x
+                }
+            }
+            // Common things
+            match next_face.facing {
+                Facing::Right => cube_pos.x = 0,
+                Facing::Down => cube_pos.y = 0,
+                Facing::Left => cube_pos.x = end,
+                Facing::Up => cube_pos.y = end,
+            }
+            println!(
+                "Changed face from {face:?} ({:?}) to {:?} ({cube_pos:?}), and facing from {facing:?} to {:?}",
+                self.to_cube_face(c).0,
+                next_face.face, next_face.facing
+            );
+            assert!(cube_pos.x >= 0);
+            assert!(cube_pos.y >= 0);
+            assert!(cube_pos.x < c.side);
+            assert!(cube_pos.y < c.side);
+            *facing = next_face.facing;
+            face = next_face.face;
+        }
+        *self = cube_pos.to_map_coord(c, face);
+        if m[self.y as usize][self.x as usize] == Wall {
+            println!("Cancelling Wall move {facing:?}, {start_pos:?} -> {self:?}");
+            self.x = start_pos.x;
+            self.y = start_pos.y;
+            *facing = start_facing;
+            return false;
+        }
+        println!("Cube moving {facing:?}, {start_pos:?} -> {self:?}");
+        true
+    }
 }
 
 fn walk_map(m: &MapSlice, p: &PasswordSlice) -> usize {
@@ -207,7 +312,7 @@ fn walk_map(m: &MapSlice, p: &PasswordSlice) -> usize {
     };
     p.iter()
         .for_each(|c| single_move(m, c, &mut pos, &mut facing));
-    println!("Done, now at pos {pos:?} facing {facing:?}");
+    //println!("Done, now at pos {pos:?} facing {facing:?}");
     1000 * (pos.y + 1) as usize + 4 * (pos.x + 1) as usize + facing as usize
 }
 
@@ -222,6 +327,313 @@ fn single_move(map: &MapSlice, mov: &Move, pos: &mut Pos, facing: &mut Facing) {
     }
 }
 
+/*
+#[derive(Debug, Clone)]
+struct PosCube {
+    x: isize,
+    y: isize,
+    face: CubeFace,
+}
+*/
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+enum CubeFace {
+    Front,
+    Right,
+    Down,
+    Left,
+    Up,
+    Back,
+}
+impl From<usize> for CubeFace {
+    fn from(value: usize) -> Self {
+        match value % 6 {
+            0 => Self::Front,
+            1 => Self::Right,
+            2 => Self::Down,
+            3 => Self::Left,
+            4 => Self::Up,
+            5 => Self::Back,
+            _ => unreachable!(),
+        }
+    }
+}
+/*
+impl CubeFace {
+    fn next(self, facing: Facing, cube: Cube) -> Self {
+        match self {
+            CubeFace::Front => match facing {
+                Facing::Right => Self::Right,
+                Facing::Down => Self::Down,
+                Facing::Left => Self::Left,
+                Facing::Up => Self::Up,
+            },
+            CubeFace::Right => match facing {
+                Facing::Right => Self::Back,
+                Facing::Down => Self::Down,
+                Facing::Left => Self::Front,
+                Facing::Up => Self::Up,
+            },
+            CubeFace::Down => match facing {
+                Facing::Right => Self::Right,
+                Facing::Down => Self::Back,
+                Facing::Left => Self::Front,
+                Facing::Up => Self::Up,
+
+            },
+            CubeFace::Left => todo!(),
+            CubeFace::Up => todo!(),
+            CubeFace::Back => todo!(),
+        }
+    }
+}
+*/
+
+#[derive(Debug, Clone)]
+enum Rotation {
+    Left = -1,
+    Right = 1,
+}
+
+/*
+#[derive(Debug, Clone)]
+struct CubeFacePos {
+    face: CubeFace,
+    start: Pos,
+}
+*/
+
+#[derive(Debug, Clone)]
+struct NextFace {
+    face: CubeFace,
+    facing: Facing,
+}
+
+#[derive(Debug, Clone)]
+struct CubeFacePos {
+    next: [NextFace; 4],
+    start: Pos,
+}
+
+#[derive(Debug, Clone)]
+struct Cube {
+    side: isize,
+    map: [CubeFacePos; 6],
+}
+
+fn walk_cube(m: &MapSlice, p: &PasswordSlice) -> usize {
+    let mut facing = Facing::Right;
+    let side = m
+        .iter()
+        .map(|l| l.iter().filter(|c| **c != OffMap).count())
+        .min()
+        .expect("side length") as isize;
+    let cube = match side {
+        // hardcode sample and input here
+        4 => Cube {
+            side,
+            /*
+            map: [
+            ],
+            */
+            map: [
+                CubeFacePos {
+                    //Front
+                    start: Pos { x: 2 * side, y: 0 }, //Front,
+                    next: [
+                        NextFace {
+                            // Facing Right
+                            face: CubeFace::Right,
+                            facing: Facing::Left,
+                        },
+                        NextFace {
+                            //Facing Down
+                            face: CubeFace::Down,
+                            facing: Facing::Down,
+                        },
+                        NextFace {
+                            //Facing Left
+                            face: CubeFace::Left,
+                            facing: Facing::Down,
+                        },
+                        NextFace {
+                            //Facing Up
+                            face: CubeFace::Up,
+                            facing: Facing::Up,
+                        },
+                    ],
+                },
+                CubeFacePos {
+                    //Right
+                    start: Pos {
+                        x: 3 * side,
+                        y: 2 * side,
+                    }, //Right,
+                    next: [
+                        NextFace {
+                            // Facing Right
+                            face: CubeFace::Front,
+                            facing: Facing::Left,
+                        },
+                        NextFace {
+                            //Facing Down
+                            face: CubeFace::Up,
+                            facing: Facing::Right,
+                        },
+                        NextFace {
+                            //Facing Left
+                            face: CubeFace::Back,
+                            facing: Facing::Left,
+                        },
+                        NextFace {
+                            //Facing Up
+                            face: CubeFace::Down,
+                            facing: Facing::Left,
+                        },
+                    ],
+                },
+                CubeFacePos {
+                    //Down
+                    start: Pos {
+                        x: 2 * side,
+                        y: side,
+                    }, //Down,
+                    next: [
+                        NextFace {
+                            // Facing Right
+                            face: CubeFace::Right,
+                            facing: Facing::Down,
+                        },
+                        NextFace {
+                            //Facing Down
+                            face: CubeFace::Back,
+                            facing: Facing::Down,
+                        },
+                        NextFace {
+                            //Facing Left
+                            face: CubeFace::Left,
+                            facing: Facing::Left,
+                        },
+                        NextFace {
+                            //Facing Up
+                            face: CubeFace::Front,
+                            facing: Facing::Up,
+                        },
+                    ],
+                },
+                CubeFacePos {
+                    //Left
+                    start: Pos { x: side, y: side }, //Left,
+                    next: [
+                        NextFace {
+                            // Facing Right
+                            face: CubeFace::Down,
+                            facing: Facing::Right,
+                        },
+                        NextFace {
+                            //Facing Down
+                            face: CubeFace::Back,
+                            facing: Facing::Right,
+                        },
+                        NextFace {
+                            //Facing Left
+                            face: CubeFace::Up,
+                            facing: Facing::Left,
+                        },
+                        NextFace {
+                            //Facing Up
+                            face: CubeFace::Front,
+                            facing: Facing::Right,
+                        },
+                    ],
+                },
+                CubeFacePos {
+                    // Up
+                    start: Pos { x: 0, y: side }, //Up,
+                    next: [
+                        NextFace {
+                            // Facing Right
+                            face: CubeFace::Left,
+                            facing: Facing::Right,
+                        },
+                        NextFace {
+                            //Facing Down
+                            face: CubeFace::Back,
+                            facing: Facing::Up,
+                        },
+                        NextFace {
+                            //Facing Left
+                            face: CubeFace::Right,
+                            facing: Facing::Up,
+                        },
+                        NextFace {
+                            //Facing Up
+                            face: CubeFace::Front,
+                            facing: Facing::Down,
+                        },
+                    ],
+                },
+                CubeFacePos {
+                    // Back
+                    start: Pos {
+                        x: 2 * side,
+                        y: 2 * side,
+                    }, //Back,
+                    next: [
+                        NextFace {
+                            // Facing Right
+                            face: CubeFace::Right,
+                            facing: Facing::Right,
+                        },
+                        NextFace {
+                            //Facing Down
+                            face: CubeFace::Up,
+                            facing: Facing::Up,
+                        },
+                        NextFace {
+                            //Facing Left
+                            face: CubeFace::Left,
+                            facing: Facing::Up,
+                        },
+                        NextFace {
+                            //Facing Up
+                            face: CubeFace::Down,
+                            facing: Facing::Up,
+                        },
+                    ],
+                },
+            ],
+        },
+        /* NOT DONE */
+        50 => Cube { side, map: todo!() },
+        _ => unreachable!(),
+    };
+    let mut pos = Pos {
+        x: m[0]
+            .iter()
+            .enumerate()
+            .find(|(_, c)| **c == Open)
+            .expect("a start pos")
+            .0 as isize,
+        y: 0,
+    };
+    p.iter()
+        .for_each(|mov| single_move_cube(m, &cube, mov, &mut pos, &mut facing));
+    println!("Done, now at pos {pos:?} facing {facing:?}");
+    1000 * (pos.y + 1) as usize + 4 * (pos.x + 1) as usize + facing as usize
+}
+
+fn single_move_cube(map: &MapSlice, cube: &Cube, mov: &Move, pos: &mut Pos, facing: &mut Facing) {
+    match mov {
+        Forward(mut n) => {
+            while n > 0 && pos.single_move_cube(facing, map, cube) {
+                n -= 1;
+            }
+        }
+        Left | Right => facing.rotate(mov),
+    }
+}
+
 #[test]
 fn test() {
     let (map, pass) = parse(sample!());
@@ -229,6 +641,6 @@ fn test() {
     let res = walk_map(&map, &pass);
     assert_eq!(res, 6032);
     //part 2
-    // let res = operation2(&map, &pass);
-    // assert_eq!(res, 42);
+    let res = walk_cube(&map, &pass);
+    assert_eq!(res, 5031);
 }
