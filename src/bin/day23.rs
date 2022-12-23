@@ -43,6 +43,44 @@ struct Pos {
     x: i32,
     y: i32,
 }
+impl Pos {
+    fn adjacent(&self) -> Vec<Pos> {
+        vec![
+            Pos {
+                x: self.x - 1,
+                y: self.y - 1,
+            },
+            Pos {
+                x: self.x,
+                y: self.y - 1,
+            },
+            Pos {
+                x: self.x + 1,
+                y: self.y - 1,
+            },
+            Pos {
+                x: self.x - 1,
+                y: self.y + 1,
+            },
+            Pos {
+                x: self.x,
+                y: self.y + 1,
+            },
+            Pos {
+                x: self.x + 1,
+                y: self.y + 1,
+            },
+            Pos {
+                x: self.x - 1,
+                y: self.y,
+            },
+            Pos {
+                x: self.x + 1,
+                y: self.y,
+            },
+        ]
+    }
+}
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 enum Direction {
     North,
@@ -161,29 +199,45 @@ impl From<usize> for Direction {
 fn spread_rounds(map: &mut Map, rounds: usize) -> usize {
     let mut origin = Pos { x: 0, y: 0 };
     for r in 0..rounds {
+        println!("before round {r}");
+        print_map(map);
         spread_single_round(map, &mut origin, Direction::from(r));
     }
+    println!("final");
+    print_map(map);
     map.iter().flatten().filter(|t| **t == Empty).count()
 }
 
 fn spread_single_round(map: &mut Map, origin: &mut Pos, dir: Direction) {
     // First spread tentatively
-    for y in 0..map.len() {
-        for x in 0..map[y].len() {
-            if map[y][x] != Elf {
-                continue;
-            }
-            move_elf(
-                map,
-                origin,
-                Pos {
-                    y: y as i32,
-                    x: x as i32,
-                },
-                dir,
-            );
-        }
-    }
+    let elf_real_pos: Vec<Pos> = map
+        .iter()
+        .enumerate()
+        .flat_map(|(y, l)| {
+            l.iter()
+                .enumerate()
+                .filter(|(_, t)| **t == Elf)
+                .map(move |(x, _)| (x, y))
+        })
+        .map(|(x, y)| Pos {
+            x: x as i32 - origin.x,
+            y: y as i32 - origin.y,
+        })
+        .collect();
+
+    elf_real_pos.iter().for_each(|e| {
+        move_elf(
+            map,
+            origin,
+            Pos {
+                x: e.x + origin.x,
+                y: e.y + origin.y,
+            },
+            dir,
+        )
+    });
+    println!("Before resolution {dir:?}");
+    print_map(map);
     // then do the resolution
     for y in 0..map.len() {
         for x in 0..map[y].len() {
@@ -193,6 +247,11 @@ fn spread_single_round(map: &mut Map, origin: &mut Pos, dir: Direction) {
                     std::cmp::Ordering::Less => unreachable!(),
                     std::cmp::Ordering::Equal => {
                         // success ! this is now an elf
+                        let map_pos = Pos {
+                            x: prev[0].x + origin.x,
+                            y: prev[0].y + origin.y,
+                        };
+                        map[map_pos.y as usize][map_pos.x as usize] = Empty;
                         map[y][x] = Elf
                     }
                     std::cmp::Ordering::Greater => {
@@ -215,6 +274,14 @@ fn spread_single_round(map: &mut Map, origin: &mut Pos, dir: Direction) {
     shrink_map(map, origin);
 }
 fn move_elf(map: &mut Map, origin: &mut Pos, map_pos: Pos, first_dir: Direction) {
+    if map_pos
+        .adjacent()
+        .iter()
+        .all(|next| needs_grow(map, next) || map[next.y as usize][next.x as usize] != Elf)
+    {
+        //No elf around, no need to move
+        return;
+    }
     let real_pos = Pos {
         x: map_pos.x - origin.x,
         y: map_pos.y - origin.y,
@@ -223,7 +290,7 @@ fn move_elf(map: &mut Map, origin: &mut Pos, map_pos: Pos, first_dir: Direction)
         let dir = Direction::from(d + first_dir as usize);
         if dir
             .iter_pos(&map_pos)
-            .all(|next| needs_grow(map, &next) || map[next.y as usize][next.x as usize] == Empty)
+            .all(|next| needs_grow(map, &next) || map[next.y as usize][next.x as usize] != Elf)
         {
             let mut new_map_pos = dir.next(&map_pos);
             let new_real_pos = Pos {
@@ -245,7 +312,6 @@ fn move_elf(map: &mut Map, origin: &mut Pos, map_pos: Pos, first_dir: Direction)
                     prev: vec![real_pos],
                 }
             }
-            map[map_pos.y as usize][map_pos.x as usize] = Empty;
             return;
         }
     }
@@ -306,8 +372,40 @@ fn shrink_map(map: &mut Map, origin: &mut Pos) {
     }
 }
 
+fn print_map(map: &Map) {
+    map.iter().for_each(|l| {
+        l.iter().for_each(|c| match c {
+            Empty => print!("."),
+            Elf => print!("#"),
+            MovingElves { prev } => print!("{}", prev.len()),
+        });
+        println!();
+    });
+}
+
 #[test]
 fn test() {
+    let mut smol_map = parse(
+        ".....\n\
+        ..##.\n\
+        ..#..\n\
+        .....\n\
+        ..##.\n\
+        .....",
+    );
+    spread_rounds(&mut smol_map, 3);
+    assert_eq!(
+        smol_map,
+        parse(
+            "..#..\n\
+            ....#\n\
+            #....\n\
+            ....#\n\
+            .....\n\
+            ..#.."
+        )
+    );
+
     let mut map = parse(sample!());
     //part 1
     let res = spread_rounds(&mut map, 10);
