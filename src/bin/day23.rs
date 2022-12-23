@@ -11,8 +11,9 @@ fn main() {
     let res = spread_rounds(&mut map, 10);
     println!("Summary: {}", res);
     //part 2
-    //let res = operation2(&map);
-    //println!("Summary2: {}", res);
+    let mut map = parse(input!());
+    let res = first_stable_round(&mut map);
+    println!("Summary2: {}", res);
 }
 fn parse(input: &str) -> Map {
     input
@@ -207,8 +208,17 @@ fn spread_rounds(map: &mut Map, rounds: usize) -> usize {
     print_map(map);
     map.iter().flatten().filter(|t| **t == Empty).count()
 }
+fn first_stable_round(map: &mut Map) -> usize {
+    let mut origin = Pos { x: 0, y: 0 };
+    let mut r = 0;
+    while spread_single_round(map, &mut origin, Direction::from(r)) {
+        r += 1;
+    }
 
-fn spread_single_round(map: &mut Map, origin: &mut Pos, dir: Direction) {
+    r + 1
+}
+
+fn spread_single_round(map: &mut Map, origin: &mut Pos, dir: Direction) -> bool {
     // First spread tentatively
     let elf_real_pos: Vec<Pos> = map
         .iter()
@@ -234,10 +244,13 @@ fn spread_single_round(map: &mut Map, origin: &mut Pos, dir: Direction) {
                 y: e.y + origin.y,
             },
             dir,
-        )
+        );
     });
+    /*
     println!("Before resolution {dir:?}");
     print_map(map);
+    */
+    let mut moved = false;
     // then do the resolution
     for y in 0..map.len() {
         for x in 0..map[y].len() {
@@ -252,7 +265,8 @@ fn spread_single_round(map: &mut Map, origin: &mut Pos, dir: Direction) {
                             y: prev[0].y + origin.y,
                         };
                         map[map_pos.y as usize][map_pos.x as usize] = Empty;
-                        map[y][x] = Elf
+                        map[y][x] = Elf;
+                        moved = true;
                     }
                     std::cmp::Ordering::Greater => {
                         // No dice, let's move all elves back to their origin position
@@ -272,6 +286,7 @@ fn spread_single_round(map: &mut Map, origin: &mut Pos, dir: Direction) {
 
     // then re-shrink map for minimal size
     shrink_map(map, origin);
+    moved
 }
 fn move_elf(map: &mut Map, origin: &mut Pos, map_pos: Pos, first_dir: Direction) {
     if map_pos
@@ -411,6 +426,7 @@ fn test() {
     let res = spread_rounds(&mut map, 10);
     assert_eq!(res, 110);
     //part 2
-    // let res = operation2(&map);
-    // assert_eq!(res, 42);
+    let mut map = parse(sample!());
+    let res = first_stable_round(&mut map);
+    assert_eq!(res, 20);
 }
