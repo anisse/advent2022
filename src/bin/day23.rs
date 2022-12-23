@@ -210,6 +210,8 @@ fn spread_rounds(map: &mut Map, rounds: usize) -> usize {
     println!("final");
     print_map(map);
     */
+    // then re-shrink map for minimal size
+    shrink_map(map, &mut origin);
     map.iter().flatten().filter(|t| **t == Empty).count()
 }
 fn first_stable_round(map: &mut Map) -> usize {
@@ -288,8 +290,6 @@ fn spread_single_round(map: &mut Map, origin: &mut Pos, dir: Direction) -> bool 
         }
     }
 
-    // then re-shrink map for minimal size
-    shrink_map(map, origin);
     moved
 }
 fn move_elf(map: &mut Map, origin: &mut Pos, map_pos: Pos, first_dir: Direction) {
