@@ -9,11 +9,11 @@ fn main() {
     let mut map = parse(input!());
     //part 1
     let res = spread_rounds(&mut map, 10);
-    println!("Summary: {}", res);
+    println!("Empty tiles after 10 rounds: {}", res);
     //part 2
     let mut map = parse(input!());
     let res = first_stable_round(&mut map);
-    println!("Summary2: {}", res);
+    println!("First stable round: {}", res);
 }
 fn parse(input: &str) -> Map {
     input
@@ -200,12 +200,16 @@ impl From<usize> for Direction {
 fn spread_rounds(map: &mut Map, rounds: usize) -> usize {
     let mut origin = Pos { x: 0, y: 0 };
     for r in 0..rounds {
+        /*
         println!("before round {r}");
         print_map(map);
+        */
         spread_single_round(map, &mut origin, Direction::from(r));
     }
+    /*
     println!("final");
     print_map(map);
+    */
     map.iter().flatten().filter(|t| **t == Empty).count()
 }
 fn first_stable_round(map: &mut Map) -> usize {
