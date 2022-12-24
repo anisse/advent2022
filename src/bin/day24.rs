@@ -105,7 +105,7 @@ fn fastest_roundtrip_path(map: &MapSlice) -> usize {
     fastest_path_common(map, start, target_pos, step)
 }
 fn fastest_path_common(map: &MapSlice, start: Pos, target_pos: Pos, start_round: usize) -> usize {
-    let mut next_pos = vec![start];
+    let mut next_pos = vec![];
     let mut new_next = vec![];
     let mut step = start_round;
     let map_max = Pos {
@@ -127,7 +127,10 @@ fn fastest_path_common(map: &MapSlice, start: Pos, target_pos: Pos, start_round:
             next_pos.push(start);
         }
 
-        assert!(!next_pos.is_empty(), "No more positions to evaluate");
+        assert!(
+            !next_pos.is_empty(),
+            "No more positions to evaluate at step {step}"
+        );
         step += 1;
         while let Some(nextp) = next_pos.pop() {
             if seen[nextp.y as usize][nextp.x as usize][step % lcd] {
