@@ -6,10 +6,10 @@ fn main() {
     let map = parse(input!());
     //part 1
     let res = fastest_path(&map);
-    println!("Summary: {}", res);
+    println!("Fastest path to end: {}", res);
     //part 2
     let res = fastest_roundtrip_path(&map);
-    println!("Summary2: {}", res);
+    println!("Fastest path additionnal roundtrip: {}", res);
 }
 fn parse(input: &str) -> Map {
     input
@@ -99,21 +99,15 @@ fn fastest_roundtrip_path(map: &MapSlice) -> usize {
         y: map.len() as u8 - 1,
     };
     let step = fastest_path_common(map, start, target_pos, 0);
-    println!("First done in {step}");
+    //println!("First done in {step}");
     let step = fastest_path_common(map, target_pos, start, step);
-    println!("Back done in {step}");
+    //println!("Back done in {step}");
     fastest_path_common(map, start, target_pos, step)
 }
 fn fastest_path_common(map: &MapSlice, start: Pos, target_pos: Pos, start_round: usize) -> usize {
     let mut next_pos = vec![start];
     let mut new_next = vec![];
     let mut step = start_round;
-    /*
-    while has_blizzard(map, &start, step + 1) {
-        println!("Initial blizzard evaluation of start pos... waiting");
-        step += 1;
-    }
-    */
     let map_max = Pos {
         x: map[0].len() as u8,
         y: map.len() as u8,
@@ -125,7 +119,7 @@ fn fastest_path_common(map: &MapSlice, start: Pos, target_pos: Pos, start_round:
         _ => panic!("Not sample or input map"),
     };
 
-    println!("Starting to go from {start:?} to {target_pos:?} at step {step}");
+    //println!("Starting to go from {start:?} to {target_pos:?} at step {step}");
     // BITFIELD, someday
     let mut seen: Vec<Vec<Vec<bool>>> = vec![vec![vec![false; lcd]; map[0].len()]; map.len()];
     'outer: loop {
