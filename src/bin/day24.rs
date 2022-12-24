@@ -8,8 +8,8 @@ fn main() {
     let res = fastest_path(&map);
     println!("Summary: {}", res);
     //part 2
-    //let res = operation2(&map);
-    //println!("Summary2: {}", res);
+    let res = fastest_roundtrip_path(&map);
+    println!("Summary2: {}", res);
 }
 fn parse(input: &str) -> Map {
     input
@@ -86,24 +86,44 @@ impl Pos {
 }
 
 fn fastest_path(map: &MapSlice) -> usize {
-    let mut next_pos = vec![Pos { x: 0, y: 0 }];
-    let mut new_next = vec![];
-    let mut step = 0;
-    let map_max = Pos {
-        x: map[0].len() as u8,
-        y: map.len() as u8,
-    };
     let target_pos = Pos {
         x: map[0].len() as u8 - 1,
         y: map.len() as u8 - 1,
     };
+    fastest_path_common(map, Pos { x: 0, y: 0 }, target_pos, 0)
+}
+fn fastest_roundtrip_path(map: &MapSlice) -> usize {
+    let start = Pos { x: 0, y: 0 };
+    let target_pos = Pos {
+        x: map[0].len() as u8 - 1,
+        y: map.len() as u8 - 1,
+    };
+    let step = fastest_path_common(map, start, target_pos, 0);
+    println!("First done in {step}");
+    let step = fastest_path_common(map, target_pos, start, step);
+    println!("Back done in {step}");
+    fastest_path_common(map, start, target_pos, step)
+}
+fn fastest_path_common(map: &MapSlice, start: Pos, target_pos: Pos, start_round: usize) -> usize {
+    let mut next_pos = vec![start];
+    let mut new_next = vec![];
+    let mut step = start_round;
+    while has_blizzard(map, &start, step + 1) {
+        println!("Initial blizzard evaluation of start pos... waiting");
+        step += 1;
+    }
+    let map_max = Pos {
+        x: map[0].len() as u8,
+        y: map.len() as u8,
+    };
     let lcd = match map.len() {
-        // Cheat: hardcode LCD
+        // Cheat: hardcode LCD between height and width
         25 => 600,
         4 => 12,
-        _ => panic!("Not sample on input map"),
+        _ => panic!("Not sample or input map"),
     };
 
+    println!("Starting to go from {start:?} to {target_pos:?} at step {step}");
     // BITFIELD, someday
     let mut seen: Vec<Vec<Vec<bool>>> = vec![vec![vec![false; lcd]; map[0].len()]; map.len()];
     'outer: loop {
@@ -114,6 +134,7 @@ fn fastest_path(map: &MapSlice) -> usize {
             }
             seen[nextp.y as usize][nextp.x as usize][step % lcd] = true;
             if has_blizzard(map, &nextp, step) {
+                println!("{nextp:?} has blizzard, skipping");
                 continue;
             }
             println!("At step {step} evaluating {nextp:?}");
@@ -125,6 +146,7 @@ fn fastest_path(map: &MapSlice) -> usize {
             }
         }
         (next_pos, new_next) = (new_next, next_pos);
+        assert!(!next_pos.is_empty());
     }
     step + 1
 }
@@ -153,7 +175,10 @@ fn test() {
     //part 1
     let res = fastest_path(&map);
     assert_eq!(res, 18);
+    //part 1 input
+    assert_eq!(fastest_path(&parse(input!())), 257);
+    println!("Input OK");
     //part 2
-    // let res = operation2(&map);
-    // assert_eq!(res, 42);
+    let res = fastest_roundtrip_path(&map);
+    assert_eq!(res, 54);
 }
