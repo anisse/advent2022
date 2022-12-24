@@ -108,10 +108,12 @@ fn fastest_path_common(map: &MapSlice, start: Pos, target_pos: Pos, start_round:
     let mut next_pos = vec![start];
     let mut new_next = vec![];
     let mut step = start_round;
+    /*
     while has_blizzard(map, &start, step + 1) {
         println!("Initial blizzard evaluation of start pos... waiting");
         step += 1;
     }
+    */
     let map_max = Pos {
         x: map[0].len() as u8,
         y: map.len() as u8,
@@ -127,6 +129,11 @@ fn fastest_path_common(map: &MapSlice, start: Pos, target_pos: Pos, start_round:
     // BITFIELD, someday
     let mut seen: Vec<Vec<Vec<bool>>> = vec![vec![vec![false; lcd]; map[0].len()]; map.len()];
     'outer: loop {
+        if step - start_round < lcd {
+            next_pos.push(start);
+        }
+
+        assert!(!next_pos.is_empty(), "No more positions to evaluate");
         step += 1;
         while let Some(nextp) = next_pos.pop() {
             if seen[nextp.y as usize][nextp.x as usize][step % lcd] {
@@ -134,10 +141,10 @@ fn fastest_path_common(map: &MapSlice, start: Pos, target_pos: Pos, start_round:
             }
             seen[nextp.y as usize][nextp.x as usize][step % lcd] = true;
             if has_blizzard(map, &nextp, step) {
-                println!("{nextp:?} has blizzard, skipping");
+                //println!("{nextp:?} has blizzard, skipping");
                 continue;
             }
-            println!("At step {step} evaluating {nextp:?}");
+            //println!("At step {step} evaluating {nextp:?}");
             if nextp == target_pos {
                 break 'outer;
             }
@@ -146,7 +153,6 @@ fn fastest_path_common(map: &MapSlice, start: Pos, target_pos: Pos, start_round:
             }
         }
         (next_pos, new_next) = (new_next, next_pos);
-        assert!(!next_pos.is_empty());
     }
     step + 1
 }
