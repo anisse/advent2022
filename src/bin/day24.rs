@@ -97,14 +97,26 @@ fn fastest_path(map: &MapSlice) -> usize {
         x: map[0].len() as u8 - 1,
         y: map.len() as u8 - 1,
     };
+    let lcd = match map.len() {
+        // Cheat: hardcode LCD
+        25 => 600,
+        4 => 12,
+        _ => panic!("Not sample on input map"),
+    };
+
+    // BITFIELD, someday
+    let mut seen: Vec<Vec<Vec<bool>>> = vec![vec![vec![false; lcd]; map[0].len()]; map.len()];
     'outer: loop {
         step += 1;
         while let Some(nextp) = next_pos.pop() {
-            //println!("At step {step} evaluating {nextp:?}");
-            if has_blizzard(map, &nextp, step) {
-                //   println!("Is estimated to have blizzard");
+            if seen[nextp.y as usize][nextp.x as usize][step % lcd] {
                 continue;
             }
+            seen[nextp.y as usize][nextp.x as usize][step % lcd] = true;
+            if has_blizzard(map, &nextp, step) {
+                continue;
+            }
+            println!("At step {step} evaluating {nextp:?}");
             if nextp == target_pos {
                 break 'outer;
             }
@@ -138,7 +150,6 @@ fn has_blizzard(map: &MapSlice, p: &Pos, round: usize) -> bool {
 #[test]
 fn test() {
     let map = parse(sample!());
-    dbg!(&map);
     //part 1
     let res = fastest_path(&map);
     assert_eq!(res, 18);
