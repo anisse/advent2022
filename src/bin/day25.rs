@@ -43,29 +43,29 @@ impl From<Snafu> for String {
         let mut num = value.num;
         let mut s: Vec<char> = Vec::new();
         let mut pow = 0;
-        let mut val;
-        println!("From called for {value:?}");
+        let mut consumed;
+        //println!("From called for {value:?}");
         while num != 0 {
             let i = num % 5_i64.pow(pow + 1);
             let c = i / 5_i64.pow(pow);
             match c {
                 0..=2 => {
                     s.push((b'0' + c as u8) as char);
-                    val = c;
+                    consumed = c;
                 }
                 3 => {
                     s.push('=');
-                    val = -2;
+                    consumed = -2;
                     //remainder += 1;
                 }
                 4 => {
                     s.push('-');
-                    val = -1;
+                    consumed = -1;
                 }
                 _ => unreachable!(),
             }
-            println!("Treating value.num: at pow {pow}: i={i}, c={c}, num={num}, val={val}");
-            num -= val * 5_i64.pow(pow);
+            //println!("Treating value.num: at pow {pow}: i={i}, c={c}, num={num}, val={val}");
+            num -= consumed * 5_i64.pow(pow);
             pow += 1;
         }
         s.into_iter().rev().collect()
