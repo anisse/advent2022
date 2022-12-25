@@ -3,10 +3,7 @@ fn main() {
     let snafus = parse(input!());
     //part 1
     let res = sum(&snafus);
-    println!("Summary: {}", Snafu::str(res));
-    //part 2
-    //let res = operation2(&snafus);
-    //println!("Summary2: {}", res);
+    println!("Here it is: {}", Snafu::str(res));
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd)]
@@ -39,7 +36,6 @@ impl From<Snafu> for i64 {
 }
 impl From<Snafu> for String {
     fn from(value: Snafu) -> Self {
-        //let mut remainder = 0;
         let mut num = value.num;
         let mut s: Vec<char> = Vec::new();
         let mut pow = 0;
@@ -56,7 +52,6 @@ impl From<Snafu> for String {
                 3 => {
                     s.push('=');
                     consumed = -2;
-                    //remainder += 1;
                 }
                 4 => {
                     s.push('-');
@@ -116,7 +111,4 @@ fn test() {
     //part 1
     let res = sum(&snafus);
     assert_eq!(res, 4890);
-    //part 2
-    // let res = operation2(&snafus);
-    // assert_eq!(res, 42);
 }
