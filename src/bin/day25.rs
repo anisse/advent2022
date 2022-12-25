@@ -3,7 +3,7 @@ fn main() {
     let snafus = parse(input!());
     //part 1
     let res = sum(&snafus);
-    println!("Summary: {}", res);
+    println!("Summary: {}", Snafu::str(res));
     //part 2
     //let res = operation2(&snafus);
     //println!("Summary2: {}", res);
@@ -12,6 +12,11 @@ fn main() {
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd)]
 struct Snafu {
     num: i64,
+}
+impl Snafu {
+    fn str(num: i64) -> String {
+        Snafu { num }.into()
+    }
 }
 impl From<&str> for Snafu {
     fn from(s: &str) -> Self {
@@ -30,6 +35,40 @@ impl From<&str> for Snafu {
 impl From<Snafu> for i64 {
     fn from(value: Snafu) -> Self {
         value.num
+    }
+}
+impl From<Snafu> for String {
+    fn from(value: Snafu) -> Self {
+        //let mut remainder = 0;
+        let mut num = value.num;
+        let mut s: Vec<char> = Vec::new();
+        let mut pow = 0;
+        let mut val;
+        println!("From called for {value:?}");
+        while num != 0 {
+            let i = num % 5_i64.pow(pow + 1);
+            let c = i / 5_i64.pow(pow);
+            match c {
+                0..=2 => {
+                    s.push((b'0' + c as u8) as char);
+                    val = c;
+                }
+                3 => {
+                    s.push('=');
+                    val = -2;
+                    //remainder += 1;
+                }
+                4 => {
+                    s.push('-');
+                    val = -1;
+                }
+                _ => unreachable!(),
+            }
+            println!("Treating value.num: at pow {pow}: i={i}, c={c}, num={num}, val={val}");
+            num -= val * 5_i64.pow(pow);
+            pow += 1;
+        }
+        s.into_iter().rev().collect()
     }
 }
 fn parse(input: &str) -> Vec<Snafu> {
@@ -60,6 +99,14 @@ fn test_convert() {
     ];
     for (i, s) in nums.iter() {
         assert_eq!(i64::from(Snafu::from(*s)), *i, "{s} is not equal to {i}");
+    }
+    for (i, s) in nums.iter() {
+        let sna = String::from(Snafu { num: *i });
+        assert_eq!(
+            String::from(Snafu { num: *i }),
+            s.to_string(),
+            "'{sna}' ({i}) is not equal to {s}"
+        );
     }
 }
 
