@@ -10,21 +10,23 @@ fn main() {
     println!("Top 3: {}", res);
 }
 
-fn parse(input: &str) -> impl Iterator<Item = Vec<usize>> + '_ + Clone {
+type ParsedItem = Vec<usize>;
+
+fn parse(input: &str) -> impl Iterator<Item = ParsedItem> + '_ + Clone {
     input
         .split("\n\n")
         .map(|elf| elf.lines().map(|x| x.parse().expect("not int")).collect())
 }
 fn max_calories<I>(elfcalories: I) -> usize
 where
-    I: Iterator<Item = Vec<usize>>,
+    I: Iterator<Item = ParsedItem>,
 {
     elfcalories.map(|v| v.iter().sum()).max().expect("no max")
 }
 
 fn top3_max<I>(elfcalories: I) -> usize
 where
-    I: Iterator<Item = Vec<usize>>,
+    I: Iterator<Item = ParsedItem>,
 {
     let mut sorted_sum = elfcalories.map(|v| v.iter().sum()).collect::<Vec<usize>>();
     sorted_sum.sort_by(|a, b| b.cmp(a));
