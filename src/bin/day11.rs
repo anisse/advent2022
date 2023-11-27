@@ -4,10 +4,10 @@ use std::fmt::Display;
 fn main() {
     let monkeys = parse(input!());
     //part 1
-    let res = monkey_business(&monkeys);
+    let res = monkey_business(monkeys.clone());
     println!("Monkey business: {}", res);
     //part 2
-    let res = monkey_business_2(&monkeys);
+    let res = monkey_business_2(monkeys);
     println!("Monkey biz 2: {}", res);
 }
 
@@ -37,93 +37,104 @@ enum Op {
     Square,
 }
 
-fn parse(input: &str) -> Vec<Monkey> {
-    input
-        .split("\n\n")
-        .map(|m| {
-            let mut l = m.lines().skip(1);
-            //l.next().expect("no monkey");
-            let items = l
-                .next()
-                .expect("no items")
-                .split(": ")
-                .nth(1)
-                .expect("no item list")
-                .split(", ")
-                .map(|it| it.parse().expect("not int"))
-                .collect();
-            let mut lop = l
-                .next()
-                .expect("no op line")
-                .split(" = ")
-                .nth(1)
-                .expect("no op")
-                .split_ascii_whitespace();
-            assert_eq!(lop.next().expect("no old"), "old", "old should be old");
-            let op = match lop.next().expect("+ or *") {
-                "+" => Op::Add(
-                    lop.next()
-                        .expect("no add argument")
-                        .parse()
-                        .expect("add not int"),
-                ),
-                "*" => {
-                    let arg = lop.next().expect("no mul argument");
-                    match arg {
-                        "old" => Op::Square,
-                        _ => Op::Mul(arg.parse().expect("mul arg not int")),
-                    }
+type ParsedItem = Monkey;
+
+fn parse(input: &str) -> impl Iterator<Item = ParsedItem> + '_ + Clone {
+    input.split("\n\n").map(|m| {
+        let mut l = m.lines().skip(1);
+        //l.next().expect("no monkey");
+        let items = l
+            .next()
+            .expect("no items")
+            .split(": ")
+            .nth(1)
+            .expect("no item list")
+            .split(", ")
+            .map(|it| it.parse().expect("not int"))
+            .collect();
+        let mut lop = l
+            .next()
+            .expect("no op line")
+            .split(" = ")
+            .nth(1)
+            .expect("no op")
+            .split_ascii_whitespace();
+        assert_eq!(lop.next().expect("no old"), "old", "old should be old");
+        let op = match lop.next().expect("+ or *") {
+            "+" => Op::Add(
+                lop.next()
+                    .expect("no add argument")
+                    .parse()
+                    .expect("add not int"),
+            ),
+            "*" => {
+                let arg = lop.next().expect("no mul argument");
+                match arg {
+                    "old" => Op::Square,
+                    _ => Op::Mul(arg.parse().expect("mul arg not int")),
                 }
-                _ => panic!("Unexpected operation"),
-            };
-            let div = l
-                .next()
-                .expect("no div line")
-                .split_ascii_whitespace()
-                .nth(3)
-                .expect("no div")
-                .parse()
-                .expect("div not int");
-            let pass_true = l
-                .next()
-                .expect("no pass_true line")
-                .split_ascii_whitespace()
-                .nth(5)
-                .expect("no pass_true")
-                .parse()
-                .expect("pass_true not int");
-            let pass_false = l
-                .next()
-                .expect("no pass_false line")
-                .split_ascii_whitespace()
-                .nth(5)
-                .expect("no pass_false")
-                .parse()
-                .expect("pass_false not int");
-            Monkey {
-                items,
-                op,
-                div,
-                pass_true,
-                pass_false,
             }
-        })
-        .collect()
+            _ => panic!("Unexpected operation"),
+        };
+        let div = l
+            .next()
+            .expect("no div line")
+            .split_ascii_whitespace()
+            .nth(3)
+            .expect("no div")
+            .parse()
+            .expect("div not int");
+        let pass_true = l
+            .next()
+            .expect("no pass_true line")
+            .split_ascii_whitespace()
+            .nth(5)
+            .expect("no pass_true")
+            .parse()
+            .expect("pass_true not int");
+        let pass_false = l
+            .next()
+            .expect("no pass_false line")
+            .split_ascii_whitespace()
+            .nth(5)
+            .expect("no pass_false")
+            .parse()
+            .expect("pass_false not int");
+        Monkey {
+            items,
+            op,
+            div,
+            pass_true,
+            pass_false,
+        }
+    })
 }
-fn monkey_business(monkeys: &[Monkey]) -> usize {
+fn monkey_business<I>(monkeys: I) -> usize
+where
+    I: Iterator<Item = ParsedItem>,
+{
     monkey_business_common(monkeys, 20, &|x| x / 3)
 }
 
-fn common_divisible(monkeys: &[Monkey]) -> u64 {
-    monkeys.iter().map(|m| m.div).product()
+fn common_divisible<I>(monkeys: I) -> u64
+where
+    I: Iterator<Item = ParsedItem>,
+{
+    monkeys.map(|m| m.div).product()
 }
-fn monkey_business_2(monkeys: &[Monkey]) -> usize {
-    let common = common_divisible(monkeys);
+fn monkey_business_2<I>(monkeys: I) -> usize
+where
+    I: Iterator<Item = ParsedItem> + Clone,
+{
+    let common = common_divisible(monkeys.clone());
     monkey_business_common(monkeys, 10000, &|x| x % common)
 }
 
-fn monkey_business_common(monkeys: &[Monkey], rounds: usize, op: &dyn Fn(u64) -> u64) -> usize {
-    let mut monkeys = monkeys.to_vec();
+fn monkey_business_common<I>(monkeys: I, rounds: usize, op: &dyn Fn(u64) -> u64) -> usize
+where
+    I: Iterator<Item = ParsedItem>,
+{
+    let mut monkeys = monkeys.collect::<Vec<_>>();
     let mut counts: Vec<usize> = vec![0; monkeys.len()];
     for _ in 0..rounds {
         for i in 0..monkeys.len() {
@@ -166,9 +177,9 @@ fn monkey_turn_common(monkeys: &mut [Monkey], m: usize, control: &dyn Fn(u64) ->
 fn test() {
     let monkeys = parse(sample!());
     //part 1
-    let res = monkey_business(&monkeys);
+    let res = monkey_business(monkeys.clone());
     assert_eq!(res, 10605);
     //part 2
-    let res = monkey_business_2(&monkeys);
+    let res = monkey_business_2(monkeys);
     assert_eq!(res, 2713310158);
 }
